@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getLeadDetail, updateLeadStatus, addNote } from './actions'
 import { runAIResearch } from './ai-actions'
+import { softDeleteLead } from '../../trash/actions'
 import Link from 'next/link'
 
 const QUALITY_STYLES: Record<string, string> = {
@@ -124,6 +125,19 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold">
             Score: {lead.lead_score}
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={async () => {
+              if (confirm('Move this lead to trash?')) {
+                await softDeleteLead(id)
+                router.push('/leads')
+              }
+            }}
+          >
+            Delete
+          </Button>
         </div>
       </div>
 

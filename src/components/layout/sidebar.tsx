@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: 'Pipeline', href: '/pipeline', icon: 'Kanban' },
   { label: 'Deals', href: '/deals', icon: 'Handshake' },
   { label: 'Tasks', href: '/tasks', icon: 'CheckSquare' },
+  { label: 'Projects', href: '/projects', icon: 'Folder' },
   { label: 'Import', href: '/import', icon: 'Upload' },
   { label: 'Settings', href: '/settings', icon: 'Settings' },
 ]
