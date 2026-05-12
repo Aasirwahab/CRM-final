@@ -4,13 +4,23 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { getOrgSettings, updateOrgName, updateProfile } from './actions'
 import Link from 'next/link'
+import { User, Building2, Users, ChevronRight, FileText, Shield, Trash2, ScrollText } from 'lucide-react'
 
 const ROLE_STYLES: Record<string, string> = {
-  owner: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  admin: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  sales: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  viewer: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+  owner: 'bg-purple-50 text-purple-600 ring-purple-500/20 dark:bg-purple-950/40 dark:text-purple-400',
+  admin: 'bg-blue-50 text-blue-600 ring-blue-500/20 dark:bg-blue-950/40 dark:text-blue-400',
+  sales: 'bg-emerald-50 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-400',
+  viewer: 'bg-gray-50 text-gray-600 ring-gray-500/20 dark:bg-gray-800 dark:text-gray-400',
 }
+
+const LINKS = [
+  { href: '/settings/audit-log', label: 'Audit Log', desc: 'View all activity and changes', icon: ScrollText },
+  { href: '/projects', label: 'Projects', desc: 'Manage client projects from won deals', icon: Building2 },
+  { href: '/trash', label: 'Trash', desc: 'Restore or permanently remove deleted leads', icon: Trash2 },
+  { href: '/settings/backups', label: 'Backups & Security', desc: 'Data protection and security overview', icon: Shield },
+  { href: '/privacy', label: 'Privacy Policy', desc: 'How we handle your data', icon: FileText },
+  { href: '/terms', label: 'Terms of Service', desc: 'Usage terms and conditions', icon: FileText },
+]
 
 export default function SettingsPage() {
   const [data, setData] = useState<any>(null)
@@ -51,7 +61,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
       </div>
     )
   }
@@ -60,26 +70,31 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage your organization and profile</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">Manage your organization and profile</p>
       </div>
 
       {success && (
-        <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-400">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
           {success}
         </div>
       )}
 
       {/* Profile */}
-      <div className="rounded-lg border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Profile</h2>
+      <div className="rounded-xl border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+            <User className="size-[18px] text-primary" />
+          </div>
+          <h2 className="text-base font-semibold">Profile</h2>
+        </div>
         <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">Full Name</label>
+          <label className="text-sm font-medium text-muted-foreground">Full Name</label>
           <div className="flex gap-3">
             <input
               type="text"
               value={profileName}
               onChange={e => setProfileName(e.target.value)}
-              className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
+              className="h-9 flex-1 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
             <Button onClick={handleSaveProfile} disabled={saving === 'profile'}>
               {saving === 'profile' ? 'Saving...' : 'Save'}
@@ -89,57 +104,67 @@ export default function SettingsPage() {
       </div>
 
       {/* Organization */}
-      <div className="rounded-lg border p-6 space-y-4">
+      <div className="rounded-xl border bg-card p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Organization</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+              <Building2 className="size-[18px] text-primary" />
+            </div>
+            <h2 className="text-base font-semibold">Organization</h2>
+          </div>
           {data?.org?.plan && (
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium capitalize text-primary">
+            <span className="badge bg-primary/10 text-primary ring-primary/20 capitalize">
               {data.org.plan} plan
             </span>
           )}
         </div>
         <div className="space-y-2">
-          <label className="text-sm text-muted-foreground">Organization Name</label>
+          <label className="text-sm font-medium text-muted-foreground">Organization Name</label>
           <div className="flex gap-3">
             <input
               type="text"
               value={orgName}
               onChange={e => setOrgName(e.target.value)}
-              className="h-9 flex-1 rounded-md border bg-background px-3 text-sm"
+              className="h-9 flex-1 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
             <Button onClick={handleSaveOrg} disabled={saving === 'org'}>
               {saving === 'org' ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 pt-2 text-sm">
+        <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/30 p-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Slug</p>
-            <p className="font-mono">{data?.org?.slug}</p>
+            <p className="text-xs text-muted-foreground">Slug</p>
+            <p className="mt-0.5 font-mono text-sm">{data?.org?.slug}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">AI Daily Cap</p>
-            <p>${((data?.org?.ai_daily_cap_cents ?? 0) / 100).toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground">AI Daily Cap</p>
+            <p className="mt-0.5 text-sm">${((data?.org?.ai_daily_cap_cents ?? 0) / 100).toFixed(2)}</p>
           </div>
         </div>
       </div>
 
       {/* Team Members */}
-      <div className="rounded-lg border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">Team Members</h2>
+      <div className="rounded-xl border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+            <Users className="size-[18px] text-primary" />
+          </div>
+          <h2 className="text-base font-semibold">Team Members</h2>
+        </div>
         {data?.members?.length === 0 ? (
           <p className="text-sm text-muted-foreground">No team members yet.</p>
         ) : (
           <div className="space-y-2">
             {data?.members?.map((m: any) => (
-              <div key={m.id} className="flex items-center justify-between rounded-md border p-3">
+              <div key={m.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/20">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-bold">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                     {(m.fullName ?? '?')[0]?.toUpperCase()}
                   </div>
                   <p className="text-sm font-medium">{m.fullName}</p>
                 </div>
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${ROLE_STYLES[m.role] ?? ''}`}>
+                <span className={`badge capitalize ${ROLE_STYLES[m.role] ?? ''}`}>
                   {m.role}
                 </span>
               </div>
@@ -147,52 +172,30 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
       {/* Quick Links */}
-      <div className="rounded-lg border p-6 space-y-4">
-        <h2 className="text-lg font-semibold">More</h2>
-        <div className="flex flex-col gap-2">
-          <Link href="/settings/audit-log" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Audit Log</p>
-              <p className="text-xs text-muted-foreground">View all activity and changes</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
-          <Link href="/projects" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Projects</p>
-              <p className="text-xs text-muted-foreground">Manage client projects from won deals</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
-          <Link href="/trash" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Trash</p>
-              <p className="text-xs text-muted-foreground">Restore or permanently remove deleted leads</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
-          <Link href="/settings/backups" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Backups & Security</p>
-              <p className="text-xs text-muted-foreground">Data protection, backups, and security overview</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
-          <Link href="/privacy" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Privacy Policy</p>
-              <p className="text-xs text-muted-foreground">How we handle your data</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
-          <Link href="/terms" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="text-sm font-medium">Terms of Service</p>
-              <p className="text-xs text-muted-foreground">Usage terms and conditions</p>
-            </div>
-            <span className="text-muted-foreground">&rarr;</span>
-          </Link>
+      <div className="rounded-xl border bg-card p-6 space-y-4">
+        <h2 className="text-base font-semibold">More</h2>
+        <div className="flex flex-col gap-1.5">
+          {LINKS.map(link => {
+            const Icon = link.icon
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-3 rounded-lg border p-3.5 transition-all duration-150 hover:bg-muted/30 hover:shadow-sm"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Icon className="size-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{link.label}</p>
+                  <p className="text-xs text-muted-foreground">{link.desc}</p>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground/40" />
+              </Link>
+            )
+          })}
         </div>
       </div>
     </div>

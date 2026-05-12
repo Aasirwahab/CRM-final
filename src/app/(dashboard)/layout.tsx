@@ -50,8 +50,10 @@ export default async function DashboardLayout({
           orgs={orgs}
           activeOrgId={activeOrgId}
         />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">
+            {children}
+          </div>
         </main>
       </div>
     </div>

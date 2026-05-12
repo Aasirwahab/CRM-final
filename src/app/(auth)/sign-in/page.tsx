@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { Sparkles, Mail, ArrowRight } from 'lucide-react'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -55,14 +56,17 @@ export default function SignInPage() {
   if (magicLinkSent) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm space-y-4 rounded-lg border p-6">
-          <h1 className="text-xl font-semibold">Check your email</h1>
+        <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <Mail className="size-5 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold">Check your email</h1>
           <p className="text-sm text-muted-foreground">
-            We sent a magic link to <strong>{email}</strong>. Click the link to sign in.
+            We sent a magic link to <strong className="text-foreground">{email}</strong>. Click the link to sign in.
           </p>
           <button
             onClick={() => setMagicLinkSent(false)}
-            className="text-sm text-primary underline"
+            className="text-sm font-medium text-primary hover:underline"
           >
             Back to sign in
           </button>
@@ -72,83 +76,119 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border p-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Sign in to LeadFlow</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your credentials to continue
+    <div className="flex min-h-screen">
+      {/* Left panel - branding */}
+      <div className="hidden w-1/2 flex-col justify-between bg-sidebar p-12 lg:flex">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+            <Sparkles className="size-4 text-sidebar-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-sidebar-foreground">LeadFlow</span>
+        </div>
+        <div>
+          <h2 className="text-3xl font-bold leading-tight text-sidebar-foreground">
+            Your AI-powered<br />sales pipeline
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-sidebar-foreground/50">
+            Import leads, track pipeline stages, close deals, and let AI handle the research. Built for teams that move fast.
           </p>
         </div>
+        <p className="text-xs text-sidebar-foreground/30">
+          &copy; {new Date().getFullYear()} LeadFlow. All rights reserved.
+        </p>
+      </div>
 
-        <form onSubmit={handleSignIn} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+      {/* Right panel - form */}
+      <div className="flex flex-1 items-center justify-center bg-background p-8">
+        <div className="w-full max-w-sm space-y-6">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <Sparkles className="size-3.5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold">LeadFlow</span>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your password"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold">Welcome back</h1>
+            <p className="text-sm text-muted-foreground">
+              Enter your credentials to continue
+            </p>
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                required
+                className="flex h-10 w-full rounded-lg border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <Link href="/reset-password" className="text-xs font-medium text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your password"
+                required
+                className="flex h-10 w-full rounded-lg border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+              {!loading && <ArrowRight className="size-4" />}
+            </button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
 
           <button
-            type="submit"
+            onClick={handleMagicLink}
             disabled={loading}
-            className="flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            <Mail className="size-4" />
+            Send magic link
           </button>
-        </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleMagicLink}
-          disabled={loading}
-          className="flex h-10 w-full items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
-        >
-          Send magic link
-        </button>
-
-        <div className="flex flex-col gap-2 text-center text-sm">
-          <Link href="/reset-password" className="text-primary underline">
-            Forgot password?
-          </Link>
-          <p className="text-muted-foreground">
+          <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/sign-up" className="text-primary underline">
+            <Link href="/sign-up" className="font-medium text-primary hover:underline">
               Sign up
             </Link>
           </p>

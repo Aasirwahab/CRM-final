@@ -59,7 +59,7 @@ export function PublicLeadForm({
     setSubmitting(false)
 
     if ('error' in result) {
-      setError(result.error)
+      setError(result.error ?? 'Something went wrong')
     } else {
       setSubmitted(true)
     }

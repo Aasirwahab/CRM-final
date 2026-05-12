@@ -92,16 +92,16 @@ export default function PipelinePage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Drag leads between stages. {leads.length} leads total.
         </p>
       </div>
 
       {conflict && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
           {conflict}
         </div>
       )}

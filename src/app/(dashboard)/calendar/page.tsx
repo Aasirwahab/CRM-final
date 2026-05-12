@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { getCalendarItems, type CalendarTask, type CalendarDeal } from './actions'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -13,7 +14,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const PRIORITY_DOT: Record<string, string> = {
   urgent: 'bg-red-500',
   high: 'bg-orange-500',
-  medium: 'bg-yellow-500',
+  medium: 'bg-amber-500',
   low: 'bg-gray-400',
 }
 
@@ -33,7 +34,6 @@ export default function CalendarPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    // Get first day of month and last day of month
     const from = new Date(year, month, 1).toISOString()
     const to = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
     const result = await getCalendarItems({ from, to })
@@ -62,11 +62,9 @@ export default function CalendarPage() {
     setSelectedDate(null)
   }
 
-  // Build calendar grid
   const firstDayOfMonth = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-  // Map items to date strings (YYYY-MM-DD)
   function dateKey(isoString: string): string {
     return isoString.slice(0, 10)
   }
@@ -83,50 +81,52 @@ export default function CalendarPage() {
     itemsByDate[key].deals.push(deal)
   }
 
-  // Selected date items
   const selectedItems = selectedDate ? itemsByDate[selectedDate] : null
-
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Calendar</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Tasks and deals for {MONTH_NAMES[month]} {year}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={prevMonth}>&#8249;</Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={prevMonth}>
+            <ChevronLeft className="size-4" />
+          </Button>
           <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
-          <Button variant="outline" size="sm" onClick={nextMonth}>&#8250;</Button>
+          <Button variant="ghost" size="icon" onClick={nextMonth}>
+            <ChevronRight className="size-4" />
+          </Button>
         </div>
       </div>
 
       {/* Legend */}
       <div className="flex gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" /> Task
         </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> Deal
         </span>
       </div>
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
         </div>
       ) : (
-        <div className="flex gap-4">
+        <div className="flex gap-5">
           {/* Calendar Grid */}
-          <div className="flex-1">
+          <div className="flex-1 rounded-xl border bg-card overflow-hidden">
             {/* Day headers */}
-            <div className="grid grid-cols-7 border-b">
+            <div className="grid grid-cols-7 bg-muted/30">
               {DAY_NAMES.map(d => (
-                <div key={d} className="px-1 py-2 text-center text-xs font-medium text-muted-foreground">
+                <div key={d} className="px-1 py-2.5 text-center text-xs font-semibold text-muted-foreground">
                   {d}
                 </div>
               ))}
@@ -134,12 +134,10 @@ export default function CalendarPage() {
 
             {/* Day cells */}
             <div className="grid grid-cols-7">
-              {/* Empty cells before first day */}
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`empty-${i}`} className="min-h-[80px] border-b border-r bg-muted/20 p-1" />
+                <div key={`empty-${i}`} className="min-h-[84px] border-t border-r bg-muted/10 p-1.5 last:border-r-0" />
               ))}
 
-              {/* Day cells */}
               {Array.from({ length: daysInMonth }).map((_, i) => {
                 const day = i + 1
                 const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
@@ -153,17 +151,16 @@ export default function CalendarPage() {
                   <div
                     key={day}
                     onClick={() => setSelectedDate(key === selectedDate ? null : key)}
-                    className={`min-h-[80px] cursor-pointer border-b border-r p-1 transition-colors hover:bg-muted/30 ${
-                      isSelected ? 'bg-primary/10 ring-1 ring-primary' : ''
+                    className={`min-h-[84px] cursor-pointer border-t border-r p-1.5 transition-all duration-150 last:border-r-0 hover:bg-primary/5 ${
+                      isSelected ? 'bg-primary/10 ring-1 ring-inset ring-primary/30' : ''
                     }`}
                   >
                     <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                      isToday ? 'bg-primary text-primary-foreground' : ''
+                      isToday ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
                     }`}>
                       {day}
                     </span>
 
-                    {/* Item dots */}
                     {(taskCount > 0 || dealCount > 0) && (
                       <div className="mt-0.5 space-y-0.5">
                         {items!.tasks.slice(0, 2).map(t => (
@@ -189,9 +186,9 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* Side panel — selected day detail */}
+          {/* Side panel */}
           {selectedDate && (
-            <div className="w-72 shrink-0 space-y-3 rounded-lg border p-3">
+            <div className="w-72 shrink-0 space-y-3 rounded-xl border bg-card p-4">
               <h3 className="text-sm font-semibold">
                 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
                   weekday: 'long', month: 'long', day: 'numeric',
@@ -202,23 +199,22 @@ export default function CalendarPage() {
                 <p className="text-xs text-muted-foreground">Nothing scheduled</p>
               ) : (
                 <>
-                  {/* Tasks */}
                   {selectedItems.tasks.length > 0 && (
                     <div>
-                      <p className="mb-1 text-xs font-medium text-muted-foreground uppercase">
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                         Tasks ({selectedItems.tasks.length})
                       </p>
                       <div className="space-y-1.5">
                         {selectedItems.tasks.map(t => (
-                          <div key={t.id} className="rounded-md border p-2">
+                          <div key={t.id} className="rounded-lg border p-2.5">
                             <p className={`text-xs font-medium ${t.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
                               {t.title}
                             </p>
-                            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span className={`inline-flex rounded-full px-1.5 py-0.5 font-medium capitalize ${
-                                t.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                                t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                                'bg-gray-100 text-gray-700'
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span className={`badge text-[10px] capitalize ${
+                                t.priority === 'urgent' ? 'bg-red-50 text-red-600 ring-red-500/20' :
+                                t.priority === 'high' ? 'bg-orange-50 text-orange-600 ring-orange-500/20' :
+                                'bg-gray-50 text-gray-600 ring-gray-500/20'
                               }`}>
                                 {t.priority}
                               </span>
@@ -231,21 +227,20 @@ export default function CalendarPage() {
                     </div>
                   )}
 
-                  {/* Deals */}
                   {selectedItems.deals.length > 0 && (
                     <div>
-                      <p className="mb-1 text-xs font-medium text-muted-foreground uppercase">
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                         Deals ({selectedItems.deals.length})
                       </p>
                       <div className="space-y-1.5">
                         {selectedItems.deals.map(d => (
-                          <div key={d.id} className="rounded-md border p-2">
+                          <div key={d.id} className="rounded-lg border p-2.5">
                             <p className="text-xs font-medium">{d.title}</p>
-                            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
-                              <span className={`inline-flex rounded-full px-1.5 py-0.5 font-medium capitalize ${
-                                d.status === 'won' ? 'bg-green-100 text-green-700' :
-                                d.status === 'lost' ? 'bg-red-100 text-red-700' :
-                                'bg-blue-100 text-blue-700'
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span className={`badge text-[10px] capitalize ${
+                                d.status === 'won' ? 'bg-emerald-50 text-emerald-600 ring-emerald-500/20' :
+                                d.status === 'lost' ? 'bg-red-50 text-red-600 ring-red-500/20' :
+                                'bg-blue-50 text-blue-600 ring-blue-500/20'
                               }`}>
                                 {d.status}
                               </span>

@@ -269,3 +269,67 @@ export async function exportLeadsCSV(params: {
 
   return { csv, count: data.length }
 }
+
+export async function getLeadMetrics(): Promise<{
+  newLeads: number
+  qualifiedLeads: number
+  hotLeads: number
+  avgScore: number
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) {
+    return { newLeads: 0, qualifiedLeads: 0, hotLeads: 0, avgScore: 0 }
+  }
+
+  const orgId = profile.default_organization_id
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [newRes, qualRes, hotRes, scoreRes] = await Promise.all([
+    service
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .is('deleted_at', null)
+      .eq('status', 'new'),
+    service
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .is('deleted_at', null)
+      .eq('status', 'qualified'),
+    service
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgId)
+      .is('deleted_at', null)
+      .eq('lead_quality', 'hot'),
+    service
+      .from('leads')
+      .select('lead_score')
+      .eq('organization_id', orgId)
+      .is('deleted_at', null),
+  ])
+
+  const scores = (scoreRes.data ?? []).map((r: any) => Number(r.lead_score))
+  const avgScore = scores.length > 0
+    ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length)
+    : 0
+
+  return {
+    newLeads: newRes.count ?? 0,
+    qualifiedLeads: qualRes.count ?? 0,
+    hotLeads: hotRes.count ?? 0,
+    avgScore,
+  }
+}
