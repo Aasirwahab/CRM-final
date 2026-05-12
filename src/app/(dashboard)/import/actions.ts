@@ -414,10 +414,9 @@ async function processChunk(
       }
     }
 
-    // Validate: need company_name or contact_name, plus email/phone/website
+    // Validate: need company_name or contact_name, AND email is required
     const hasIdentity = mapped.company_name || mapped.contact_name
-    const hasContact = mapped.email || mapped.phone || mapped.website
-    if (!hasIdentity || !hasContact) {
+    if (!hasIdentity || !mapped.email) {
       await service.from('csv_import_rows').insert({
         batch_id: batchId,
         row_number: rowNumber,
@@ -426,7 +425,7 @@ async function processChunk(
         status: 'failed',
         error_message: !hasIdentity
           ? 'Missing company name or contact name'
-          : 'Missing email, phone, or website',
+          : 'Missing email — email is required for import',
       })
       failed++
       continue
@@ -478,9 +477,10 @@ async function processChunk(
       }
     }
 
-    // Upsert contact
+    // Upsert contact — create if we have a name, email, or phone
     let contactId: string | null = null
-    if (mapped.contact_name) {
+    const hasContactData = mapped.contact_name || mapped.email || mapped.phone
+    if (hasContactData) {
       if (mapped.email) {
         const { data: existing } = await service
           .from('contacts')
@@ -497,12 +497,18 @@ async function processChunk(
       }
 
       if (!contactId) {
+        // Use contact name, or fall back to email prefix, or company name
+        const contactName = mapped.contact_name
+          || (mapped.email ? mapped.email.split('@')[0] : null)
+          || mapped.company_name
+          || 'Unknown'
+
         const { data: newContact } = await service
           .from('contacts')
           .insert({
             organization_id: orgId,
             company_id: companyId,
-            full_name: mapped.contact_name,
+            full_name: contactName,
             email: mapped.email || null,
             phone: mapped.phone || null,
             job_title: mapped.job_title || null,

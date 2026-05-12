@@ -32,22 +32,24 @@ function guessMapping(header: string): string {
   const h = header.toLowerCase().replace(/[_\-\s]+/g, '')
   // Company name variations
   if (h.includes('companyname') || h.includes('businessname') || h === 'company' || h === 'business' || h === 'organization' || h === 'org') return 'company_name'
-  // Website
-  if ((h.includes('website') || (h.includes('url') && !h.includes('linkedin'))) && !h.includes('status')) return 'website'
+  // Website — but not website_status or similar metadata
+  if ((h === 'website' || h === 'url' || h === 'companyurl' || h === 'siteurl') && !h.includes('status')) return 'website'
   // Industry / category
-  if (h.includes('industry') || h.includes('sector') || h.includes('category')) return 'industry'
+  if (h.includes('industry') || h.includes('sector') || h === 'category') return 'industry'
   // Location
-  if (h.includes('location') || h.includes('city') || h.includes('country') || h.includes('address') || h.includes('postcode') || h.includes('zipcode') || h.includes('region') || h.includes('area')) return 'location'
-  // Contact name variations
-  if (h.includes('contactname') || h.includes('fullname') || h.includes('firstname') || h.includes('lastname') || (h.includes('name') && !h.includes('company') && !h.includes('business') && !h.includes('file'))) return 'contact_name'
-  // Email
-  if (h.includes('email') || h.includes('mail')) return 'email'
+  if (h === 'location' || h === 'city' || h === 'country' || h === 'address' || h === 'region' || h === 'area') return 'location'
+  // Contact name — be specific to avoid matching "business_name", "file_name", etc.
+  if (h === 'contactname' || h === 'fullname' || h === 'firstname' || h === 'lastname' || h === 'directorname' || h === 'ownername' || h === 'personname' || h === 'name') return 'contact_name'
+  // Email — only match the primary email column, NOT metadata like "is_decision_maker_email" or "emails_found"
+  if (h === 'email' || h === 'emailaddress' || h === 'contactemail' || h === 'mail' || h === 'primaryemail' || h === 'workemail') return 'email'
   // Phone
-  if (h.includes('phone') || h.includes('mobile') || h.includes('tel') || h.includes('fax')) return 'phone'
+  if (h === 'phone' || h === 'mobile' || h === 'tel' || h === 'telephone' || h === 'phonenumber' || h === 'mobilenumber') return 'phone'
   // Job title
-  if (h.includes('title') || h.includes('position') || h.includes('jobtitle') || h.includes('designation')) return 'job_title'
+  if (h === 'title' || h === 'jobtitle' || h === 'position' || h === 'designation' || h === 'role') return 'job_title'
   // LinkedIn
   if (h.includes('linkedin')) return 'linkedin_url'
+  // Source
+  if (h === 'source' || h === 'leadsource') return 'source'
   return 'skip'
 }
 
@@ -61,8 +63,8 @@ export function MappingStep({ headers, sampleRow, batchId, onComplete, onBack }:
   const [error, setError] = useState<string | null>(null)
 
   const hasCompanyOrContact = Object.values(mapping).includes('company_name') || Object.values(mapping).includes('contact_name')
-  const hasContactInfo = Object.values(mapping).includes('email') || Object.values(mapping).includes('phone') || Object.values(mapping).includes('website')
-  const isValid = hasCompanyOrContact && hasContactInfo
+  const hasEmail = Object.values(mapping).includes('email')
+  const isValid = hasCompanyOrContact && hasEmail
 
   async function handleStart() {
     setSaving(true)
@@ -98,7 +100,7 @@ export function MappingStep({ headers, sampleRow, batchId, onComplete, onBack }:
       {!isValid && (
         <div className="rounded-md bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
           {!hasCompanyOrContact && 'Map at least one column to Company Name or Contact Name. '}
-          {!hasContactInfo && 'Map at least one column to Email, Phone, or Website.'}
+          {!hasEmail && 'Map a column to Email — email is required for import.'}
         </div>
       )}
 
