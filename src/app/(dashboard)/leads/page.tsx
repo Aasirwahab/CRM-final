@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { getLeads, type LeadRow } from './actions'
+import { getLeads, exportLeadsCSV, type LeadRow } from './actions'
 import Link from 'next/link'
 
 const QUALITY_STYLES: Record<string, string> = {
@@ -35,6 +35,7 @@ export default function LeadsPage() {
   const [sortBy, setSortBy] = useState('created_at')
   const [sortDesc, setSortDesc] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
 
   const loadLeads = useCallback(async () => {
     setLoading(true)
@@ -90,9 +91,35 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">{total} total leads</p>
         </div>
-        <Link href="/import">
-          <Button>Import CSV</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={exporting || total === 0}
+            onClick={async () => {
+              setExporting(true)
+              const result = await exportLeadsCSV({
+                search: search || undefined,
+                status: statusFilter || undefined,
+                quality: qualityFilter || undefined,
+              })
+              if (result.csv) {
+                const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `leadflow-export-${new Date().toISOString().slice(0, 10)}.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+              }
+              setExporting(false)
+            }}
+          >
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+          <Link href="/import">
+            <Button>Import CSV</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

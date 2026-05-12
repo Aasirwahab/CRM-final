@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { getLeadDetail, updateLeadStatus, addNote } from './actions'
+import { getLeadDetail, updateLeadStatus, addNote, addReply } from './actions'
 import { runAIResearch } from './ai-actions'
 import { softDeleteLead } from '../../trash/actions'
 import Link from 'next/link'
@@ -294,33 +294,34 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          {/* Notes */}
+          {/* Comments (threaded) */}
           <div className="rounded-lg border p-4">
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">Notes</h2>
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+              Comments ({notes.length})
+            </h2>
             <div className="space-y-3">
+              {/* New comment box */}
               <div className="flex gap-2">
                 <textarea
                   value={noteText}
                   onChange={e => setNoteText(e.target.value)}
-                  placeholder="Add a note..."
+                  placeholder="Add a comment..."
                   rows={2}
                   className="flex-1 resize-none rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground"
                 />
                 <Button onClick={handleAddNote} disabled={!noteText.trim() || savingNote} size="sm">
-                  {savingNote ? '...' : 'Add'}
+                  {savingNote ? '...' : 'Post'}
                 </Button>
               </div>
+
               {notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No notes yet.</p>
+                <p className="text-sm text-muted-foreground">No comments yet. Start the conversation.</p>
               ) : (
-                notes.map((n: any) => (
-                  <div key={n.id} className="rounded-md bg-muted/50 p-3">
-                    <p className="text-sm">{n.content}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(n.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                ))
+                <CommentThread
+                  comments={notes}
+                  leadId={id}
+                  onReplyAdded={load}
+                />
               )}
             </div>
           </div>
@@ -399,6 +400,100 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function CommentThread({
+  comments,
+  leadId,
+  onReplyAdded,
+}: {
+  comments: any[]
+  leadId: string
+  onReplyAdded: () => void
+}) {
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Separate top-level comments and replies
+  const topLevel = comments.filter((c: any) => !c.parentId)
+  const repliesMap = new Map<string, any[]>()
+  comments.filter((c: any) => c.parentId).forEach((c: any) => {
+    const arr = repliesMap.get(c.parentId) || []
+    arr.push(c)
+    repliesMap.set(c.parentId, arr)
+  })
+
+  async function handleReply(parentId: string) {
+    if (!replyText.trim()) return
+    setSaving(true)
+    await addReply(leadId, parentId, replyText.trim())
+    setReplyText('')
+    setReplyingTo(null)
+    setSaving(false)
+    onReplyAdded()
+  }
+
+  return (
+    <div className="space-y-3">
+      {topLevel.map((comment: any) => (
+        <div key={comment.id} className="space-y-2">
+          {/* Main comment */}
+          <div className="rounded-md bg-muted/50 p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {(comment.authorName ?? '?')[0]?.toUpperCase()}
+              </div>
+              <span className="text-xs font-medium">{comment.authorName}</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(comment.createdAt).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm">{comment.content}</p>
+            <button
+              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+              className="mt-1 text-xs text-primary hover:underline"
+            >
+              Reply
+            </button>
+          </div>
+
+          {/* Replies */}
+          {repliesMap.get(comment.id)?.map((reply: any) => (
+            <div key={reply.id} className="ml-8 rounded-md bg-muted/30 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  {(reply.authorName ?? '?')[0]?.toUpperCase()}
+                </div>
+                <span className="text-xs font-medium">{reply.authorName}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(reply.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <p className="text-sm">{reply.content}</p>
+            </div>
+          ))}
+
+          {/* Reply form */}
+          {replyingTo === comment.id && (
+            <div className="ml-8 flex gap-2">
+              <input
+                type="text"
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="Write a reply..."
+                className="h-8 flex-1 rounded-md border bg-background px-3 text-sm"
+                onKeyDown={e => e.key === 'Enter' && handleReply(comment.id)}
+              />
+              <Button size="sm" onClick={() => handleReply(comment.id)} disabled={!replyText.trim() || saving}>
+                {saving ? '...' : 'Reply'}
+              </Button>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }

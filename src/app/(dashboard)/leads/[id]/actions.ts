@@ -60,20 +60,29 @@ export async function getLeadDetail(leadId: string) {
     .order('created_at', { ascending: false })
     .limit(20)
 
-  // Fetch notes
+  // Fetch notes/comments with author names
   const { data: notes } = await service
     .from('notes')
-    .select('id, content, created_by, created_at')
+    .select('id, content, created_by, created_at, parent_id, profiles:created_by(full_name)')
     .eq('entity_type', 'lead')
     .eq('entity_id', leadId)
     .eq('organization_id', orgId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: true })
+
+  const formattedNotes = (notes ?? []).map((n: any) => ({
+    id: n.id,
+    content: n.content,
+    createdBy: n.created_by,
+    authorName: n.profiles?.full_name ?? 'Unknown',
+    createdAt: n.created_at,
+    parentId: n.parent_id,
+  }))
 
   return {
     lead,
     research: research ?? null,
     activities: activities ?? [],
-    notes: notes ?? [],
+    notes: formattedNotes,
   }
 }
 
@@ -155,5 +164,35 @@ export async function addNote(leadId: string, content: string) {
 
   if (error) return { error: 'Failed to add note' }
 
+  return { success: true }
+}
+
+export async function addReply(leadId: string, parentId: string, content: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { error: 'No org' }
+
+  const { error } = await service
+    .from('notes')
+    .insert({
+      organization_id: profile.default_organization_id,
+      entity_type: 'lead',
+      entity_id: leadId,
+      parent_id: parentId,
+      content,
+      created_by: profile.id,
+    })
+
+  if (error) return { error: 'Failed to add reply' }
   return { success: true }
 }

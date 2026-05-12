@@ -120,3 +120,91 @@ export async function getLeads(params: {
 
   return { leads: filtered, total: count ?? 0 }
 }
+
+export async function exportLeadsCSV(params: {
+  search?: string
+  status?: string
+  quality?: string
+}): Promise<{ csv: string; count: number }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { csv: '', count: 0 }
+
+  const orgId = profile.default_organization_id
+
+  let query = service
+    .from('leads')
+    .select(`
+      id, source, status, lead_score, lead_quality, ai_status,
+      pipeline_stage, last_contacted_at, next_follow_up_at,
+      created_at, updated_at,
+      companies(name, website, industry, size_band, location),
+      contacts(full_name, email, phone, job_title, linkedin_url, is_decision_maker)
+    `)
+    .eq('organization_id', orgId)
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5000)
+
+  if (params.status) query = query.eq('status', params.status)
+  if (params.quality) query = query.eq('lead_quality', params.quality)
+
+  const { data } = await query
+
+  if (!data || data.length === 0) return { csv: '', count: 0 }
+
+  // Build CSV
+  const headers = [
+    'Company Name', 'Website', 'Industry', 'Size', 'Location',
+    'Contact Name', 'Email', 'Phone', 'Job Title', 'LinkedIn',
+    'Decision Maker', 'Source', 'Status', 'Quality', 'Score',
+    'AI Status', 'Pipeline Stage', 'Last Contacted', 'Next Follow-up',
+    'Created', 'Updated',
+  ]
+
+  const rows = data.map((r: any) => {
+    const co = r.companies
+    const ct = r.contacts
+    return [
+      co?.name ?? '', co?.website ?? '', co?.industry ?? '', co?.size_band ?? '', co?.location ?? '',
+      ct?.full_name ?? '', ct?.email ?? '', ct?.phone ?? '', ct?.job_title ?? '', ct?.linkedin_url ?? '',
+      ct?.is_decision_maker ? 'Yes' : 'No',
+      r.source ?? '', r.status, r.lead_quality, r.lead_score,
+      r.ai_status, r.pipeline_stage ?? '',
+      r.last_contacted_at ? new Date(r.last_contacted_at).toLocaleDateString() : '',
+      r.next_follow_up_at ? new Date(r.next_follow_up_at).toLocaleDateString() : '',
+      new Date(r.created_at).toLocaleDateString(),
+      new Date(r.updated_at).toLocaleDateString(),
+    ].map(v => {
+      const s = String(v)
+      // Escape CSV: quote fields containing commas, quotes, or newlines
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`
+      }
+      return s
+    })
+  })
+
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+
+  // Log export activity
+  await service.from('activity_logs').insert({
+    organization_id: orgId,
+    actor_profile_id: profile.id,
+    action: 'exported',
+    entity_type: 'leads',
+    after_json: { count: data.length, filters: params },
+  })
+
+  return { csv, count: data.length }
+}
