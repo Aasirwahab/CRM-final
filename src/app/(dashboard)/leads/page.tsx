@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { getLeads, exportLeadsCSV, type LeadRow } from './actions'
+import { getLeads, exportLeadsCSV, inlineUpdateLead, type LeadRow } from './actions'
 import Link from 'next/link'
 
 const QUALITY_STYLES: Record<string, string> = {
@@ -36,6 +36,7 @@ export default function LeadsPage() {
   const [sortDesc, setSortDesc] = useState(true)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null)
 
   const loadLeads = useCallback(async () => {
     setLoading(true)
@@ -208,8 +209,8 @@ export default function LeadsPage() {
               </tr>
             ) : (
               leads.map(lead => (
-                <tr key={lead.id} className="cursor-pointer border-b last:border-0 hover:bg-muted/30" onClick={() => router.push(`/leads/${lead.id}`)}>
-                  <td className="px-4 py-3">
+                <tr key={lead.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <td className="px-4 py-3 cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
                     <div>
                       {lead.company_name && (
                         <p className="font-medium">{lead.company_name}</p>
@@ -219,22 +220,69 @@ export default function LeadsPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
                     {lead.contact_email ?? '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[lead.status] ?? ''}`}>
-                      {lead.status}
-                    </span>
+                    {editingCell?.id === lead.id && editingCell?.field === 'status' ? (
+                      <select
+                        autoFocus
+                        defaultValue={lead.status}
+                        className="h-7 rounded-md border bg-background px-1.5 text-xs"
+                        onChange={async (e) => {
+                          const newVal = e.target.value
+                          setEditingCell(null)
+                          // Optimistic update
+                          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: newVal } : l))
+                          await inlineUpdateLead(lead.id, 'status', newVal)
+                        }}
+                        onBlur={() => setEditingCell(null)}
+                      >
+                        {['new','contacted','qualified','unqualified','nurture','converted','lost'].map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-flex cursor-pointer rounded-full px-2 py-0.5 text-xs font-medium capitalize hover:ring-2 hover:ring-primary/30 ${STATUS_STYLES[lead.status] ?? ''}`}
+                        onClick={(e) => { e.stopPropagation(); setEditingCell({ id: lead.id, field: 'status' }) }}
+                        title="Click to edit"
+                      >
+                        {lead.status}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${QUALITY_STYLES[lead.lead_quality] ?? ''}`}>
-                      {lead.lead_quality}
-                    </span>
+                    {editingCell?.id === lead.id && editingCell?.field === 'quality' ? (
+                      <select
+                        autoFocus
+                        defaultValue={lead.lead_quality}
+                        className="h-7 rounded-md border bg-background px-1.5 text-xs"
+                        onChange={async (e) => {
+                          const newVal = e.target.value
+                          setEditingCell(null)
+                          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_quality: newVal } : l))
+                          await inlineUpdateLead(lead.id, 'lead_quality', newVal)
+                        }}
+                        onBlur={() => setEditingCell(null)}
+                      >
+                        {['hot','warm','cold'].map(q => (
+                          <option key={q} value={q}>{q}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-flex cursor-pointer rounded-full px-2 py-0.5 text-xs font-medium capitalize hover:ring-2 hover:ring-primary/30 ${QUALITY_STYLES[lead.lead_quality] ?? ''}`}
+                        onClick={(e) => { e.stopPropagation(); setEditingCell({ id: lead.id, field: 'quality' }) }}
+                        title="Click to edit"
+                      >
+                        {lead.lead_quality}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{lead.lead_score}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{lead.source ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-right font-mono cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>{lead.lead_score}</td>
+                  <td className="px-4 py-3 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>{lead.source ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
                     {new Date(lead.created_at).toLocaleDateString()}
                   </td>
                 </tr>

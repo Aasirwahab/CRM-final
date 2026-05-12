@@ -121,6 +121,67 @@ export async function getLeads(params: {
   return { leads: filtered, total: count ?? 0 }
 }
 
+export async function inlineUpdateLead(
+  leadId: string,
+  field: 'status' | 'lead_quality' | 'source',
+  value: string
+): Promise<{ success?: boolean; error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { error: 'No org' }
+
+  // Validate field + value
+  const ALLOWED: Record<string, string[]> = {
+    status: ['new', 'contacted', 'qualified', 'unqualified', 'nurture', 'converted', 'lost'],
+    lead_quality: ['hot', 'warm', 'cold'],
+    source: [], // any string allowed
+  }
+
+  if (!(field in ALLOWED)) return { error: 'Invalid field' }
+  if (ALLOWED[field].length > 0 && !ALLOWED[field].includes(value)) return { error: 'Invalid value' }
+
+  // Get current value for audit log
+  const { data: current } = await service
+    .from('leads')
+    .select(`${field}, version`)
+    .eq('id', leadId)
+    .eq('organization_id', profile.default_organization_id)
+    .single()
+
+  if (!current) return { error: 'Lead not found' }
+
+  const { error } = await service
+    .from('leads')
+    .update({ [field]: value, version: current.version + 1 })
+    .eq('id', leadId)
+    .eq('version', current.version)
+
+  if (error) return { error: 'Update conflict — please refresh' }
+
+  // Audit log
+  await service.from('activity_logs').insert({
+    organization_id: profile.default_organization_id,
+    actor_profile_id: profile.id,
+    action: 'updated',
+    entity_type: 'lead',
+    entity_id: leadId,
+    before_json: { [field]: (current as any)[field] },
+    after_json: { [field]: value },
+  })
+
+  return { success: true }
+}
+
 export async function exportLeadsCSV(params: {
   search?: string
   status?: string

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getTasks, createTask, updateTaskStatus, type TaskRow } from './actions'
 
@@ -14,6 +15,7 @@ const PRIORITY_STYLES: Record<string, string> = {
 const STATUS_OPTIONS = ['todo', 'in_progress', 'done', 'cancelled']
 
 export default function TasksPage() {
+  const router = useRouter()
   const [tasks, setTasks] = useState<TaskRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
@@ -142,11 +144,25 @@ export default function TasksPage() {
                   <p className={`text-sm font-medium ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
                     {task.title}
                   </p>
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    {task.company_name && <span>{task.company_name}</span>}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {task.company_name && task.lead_id ? (
+                      <button
+                        onClick={() => router.push(`/leads/${task.lead_id}`)}
+                        className="text-primary hover:underline"
+                      >
+                        {task.company_name}
+                      </button>
+                    ) : task.company_name ? (
+                      <span>{task.company_name}</span>
+                    ) : null}
                     {task.due_at && (
                       <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
                         Due {new Date(task.due_at).toLocaleDateString()}
+                      </span>
+                    )}
+                    {task.title.startsWith('Follow up:') && (
+                      <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                        Auto
                       </span>
                     )}
                   </div>
