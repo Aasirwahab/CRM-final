@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { label: 'Pipeline', href: '/pipeline', icon: 'Kanban' },
   { label: 'Deals', href: '/deals', icon: 'Handshake' },
   { label: 'Tasks', href: '/tasks', icon: 'CheckSquare' },
+  { label: 'Calendar', href: '/calendar', icon: 'Calendar' },
   { label: 'Projects', href: '/projects', icon: 'Folder' },
   { label: 'Lead Forms', href: '/lead-forms', icon: 'FormInput' },
   { label: 'Import', href: '/import', icon: 'Upload' },
