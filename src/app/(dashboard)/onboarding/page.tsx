@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { sendWelcome } from './actions'
 
 export default function OnboardingPage() {
   const [orgName, setOrgName] = useState('')
@@ -47,6 +48,9 @@ export default function OnboardingPage() {
       setLoading(false)
       return
     }
+
+    // Send welcome email (fire-and-forget, don't block navigation)
+    sendWelcome().catch(() => {})
 
     router.push('/dashboard')
   }

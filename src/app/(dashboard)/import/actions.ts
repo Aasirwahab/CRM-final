@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scoreLeadRule } from '@/lib/scoring'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { sendImportCompleteEmail } from '@/lib/email'
 
 const MAX_FILE_SIZE_FREE = 5 * 1024 * 1024 // 5MB
 const MAX_ROWS_FREE = 1000
@@ -15,6 +17,10 @@ export async function createImportBatch(formData: FormData) {
 
   const fileName = formData.get('fileName') as string
   const fileSize = Number(formData.get('fileSize'))
+
+  // Rate limit imports
+  const rl = RATE_LIMITS.import(user.id)
+  if (!rl.success) return { error: `Too many imports. Try again in ${rl.resetIn}s.` }
 
   if (!fileName || !fileSize) {
     return { error: 'Missing file info' }
@@ -341,6 +347,27 @@ export async function startImportProcessing(batchId: string) {
       duplicate_rows: duplicates,
     })
     .eq('id', batchId)
+
+  // Send import-complete email (fire-and-forget)
+  try {
+    const { data: batchInfo } = await service
+      .from('csv_import_batches')
+      .select('file_name, total_rows')
+      .eq('id', batchId)
+      .single()
+
+    const { data: authUser } = await service.auth.admin.getUserById(user.id)
+    if (authUser?.user?.email) {
+      const name = authUser.user.user_metadata?.full_name ?? authUser.user.email.split('@')[0]
+      sendImportCompleteEmail(authUser.user.email, name, {
+        total: batchInfo?.total_rows ?? 0,
+        imported: successful,
+        duplicates,
+        failed,
+        batchName: batchInfo?.file_name ?? 'import',
+      }).catch(() => {})
+    }
+  } catch {}
 
   return { success: true, successful, failed, duplicates }
 }

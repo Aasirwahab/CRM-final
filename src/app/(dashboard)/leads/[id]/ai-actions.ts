@@ -4,11 +4,22 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runBasicResearch, runStandardResearch, estimateCostCents } from '@/lib/ai/openai'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, uuidSchema } from '@/lib/validate'
 
 export async function runAIResearch(leadId: string, tier: 'basic' | 'standard' = 'basic') {
+  // Validate input
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+  if (tier !== 'basic' && tier !== 'standard') return { error: 'Invalid tier' }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
+
+  // Rate limit AI requests
+  const rl = RATE_LIMITS.aiResearch(user.id)
+  if (!rl.success) return { error: `Too many AI requests. Try again in ${rl.resetIn}s.` }
 
   const service = createServiceClient()
 

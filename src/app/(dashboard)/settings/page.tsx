@@ -172,6 +172,27 @@ export default function SettingsPage() {
             </div>
             <span className="text-muted-foreground">&rarr;</span>
           </Link>
+          <Link href="/settings/backups" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
+            <div>
+              <p className="text-sm font-medium">Backups & Security</p>
+              <p className="text-xs text-muted-foreground">Data protection, backups, and security overview</p>
+            </div>
+            <span className="text-muted-foreground">&rarr;</span>
+          </Link>
+          <Link href="/privacy" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
+            <div>
+              <p className="text-sm font-medium">Privacy Policy</p>
+              <p className="text-xs text-muted-foreground">How we handle your data</p>
+            </div>
+            <span className="text-muted-foreground">&rarr;</span>
+          </Link>
+          <Link href="/terms" className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 transition-colors">
+            <div>
+              <p className="text-sm font-medium">Terms of Service</p>
+              <p className="text-xs text-muted-foreground">Usage terms and conditions</p>
+            </div>
+            <span className="text-muted-foreground">&rarr;</span>
+          </Link>
         </div>
       </div>
     </div>

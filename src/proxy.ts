@@ -44,6 +44,20 @@ export default async function proxy(request: NextRequest) {
   // Let the pages themselves handle it to avoid redirect loops
   // when the profile/org query fails after auth.
 
+  // Security headers
+  supabaseResponse.headers.set('X-Frame-Options', 'DENY')
+  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
+  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  supabaseResponse.headers.set('X-DNS-Prefetch-Control', 'on')
+  supabaseResponse.headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains'
+  )
+  supabaseResponse.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  )
+
   return supabaseResponse
 }
 
