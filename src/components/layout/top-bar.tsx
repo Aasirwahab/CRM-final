@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { Search, Bell, LogOut, ChevronRight, User } from 'lucide-react'
 
 type Org = { id: string; name: string; slug: string; role: string }
@@ -19,6 +20,7 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   'lead-forms': 'Lead Forms',
   import: 'Import',
   settings: 'Settings',
+  tables: 'Tables',
   trash: 'Trash',
   onboarding: 'Onboarding',
 }
@@ -74,15 +76,18 @@ export function TopBar({
         {breadcrumbs.map((crumb, i) => (
           <div key={crumb.href} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground/50" />}
-            <span
-              className={
-                i === breadcrumbs.length - 1
-                  ? 'font-medium text-foreground'
-                  : 'text-muted-foreground'
-              }
-            >
-              {crumb.label}
-            </span>
+            {i < breadcrumbs.length - 1 ? (
+              <Link
+                href={crumb.href}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {crumb.label}
+              </Link>
+            ) : (
+              <span className="font-medium text-foreground">
+                {crumb.label}
+              </span>
+            )}
           </div>
         ))}
       </nav>

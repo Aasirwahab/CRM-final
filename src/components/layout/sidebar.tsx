@@ -12,6 +12,7 @@ import {
   FolderKanban,
   FileInput,
   Upload,
+  Table2,
   Settings,
   ChevronDown,
   Sparkles,
@@ -37,6 +38,7 @@ const MANAGE_NAV = [
 const DATA_NAV = [
   { label: 'Lead Forms', href: '/lead-forms', icon: FileInput },
   { label: 'Import', href: '/import', icon: Upload },
+  { label: 'Tables', href: '/tables', icon: Table2 },
 ]
 
 function NavSection({ label, items, pathname }: { label: string; items: typeof MAIN_NAV; pathname: string }) {
