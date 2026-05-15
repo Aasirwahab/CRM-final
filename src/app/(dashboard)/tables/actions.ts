@@ -587,3 +587,94 @@ export async function archiveRow(
 
   return { success: true }
 }
+
+// ---------------------------------------------------------------------------
+// Import from CSV / Excel
+// ---------------------------------------------------------------------------
+
+export type ImportColumn = {
+  name: string
+  key: string
+  field_type: FieldType
+}
+
+export async function createTableFromImport(input: {
+  name: string
+  color?: string
+  columns: ImportColumn[]
+  rows: Record<string, unknown>[]
+}): Promise<{ slug?: string; error?: string }> {
+  const ctx = await getAuthContext()
+  if (!ctx) return { error: 'No active organization' }
+
+  if (!input.name.trim()) return { error: 'Table name is required' }
+  if (input.columns.length === 0) return { error: 'At least one column is required' }
+  if (input.rows.length > 5000) return { error: 'Maximum 5,000 rows per import' }
+
+  const { data: slugData } = await ctx.service.rpc('generate_table_slug', {
+    org: ctx.orgId,
+    base: input.name.trim(),
+  })
+  const slug = slugData ?? input.name.toLowerCase().replace(/\s+/g, '-')
+
+  const { data: table, error: tableErr } = await ctx.service
+    .from('custom_tables')
+    .insert({
+      organization_id: ctx.orgId,
+      name: input.name.trim(),
+      slug,
+      color: input.color || 'blue',
+      created_by: ctx.profileId,
+    })
+    .select('id')
+    .single()
+
+  if (tableErr || !table) return { error: 'Failed to create table' }
+
+  const colInserts = input.columns.map((col, i) => ({
+    table_id: table.id,
+    organization_id: ctx.orgId,
+    name: col.name,
+    key: col.key,
+    field_type: col.field_type,
+    position: i,
+  }))
+
+  const { error: colErr } = await ctx.service
+    .from('custom_columns')
+    .insert(colInserts)
+
+  if (colErr) return { error: 'Failed to create columns' }
+
+  if (input.rows.length > 0) {
+    const BATCH = 500
+    for (let i = 0; i < input.rows.length; i += BATCH) {
+      const batch = input.rows.slice(i, i + BATCH).map((cells) => ({
+        table_id: table.id,
+        organization_id: ctx.orgId,
+        cells,
+        created_by: ctx.profileId,
+      }))
+      const { error: rowErr } = await ctx.service
+        .from('custom_rows')
+        .insert(batch)
+      if (rowErr) return { error: `Failed to import rows (batch starting at ${i})` }
+    }
+  }
+
+  await ctx.service.from('activity_logs').insert({
+    organization_id: ctx.orgId,
+    actor_profile_id: ctx.profileId,
+    action: 'created',
+    entity_type: 'custom_table',
+    entity_id: table.id,
+    after_json: {
+      name: input.name,
+      imported: true,
+      column_count: input.columns.length,
+      row_count: input.rows.length,
+    },
+  })
+
+  return { slug }
+}

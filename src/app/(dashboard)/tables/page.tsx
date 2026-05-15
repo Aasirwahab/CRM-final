@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getTables, createTable, archiveTable, type CustomTableRow } from './actions'
-import { Plus, Table2, Trash2 } from 'lucide-react'
+import { ImportModal } from './import-modal'
+import { Plus, Table2, Trash2, ChevronDown, Upload, FileSpreadsheet } from 'lucide-react'
 
 const COLOR_OPTIONS = [
   { value: 'blue', bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-600 dark:text-blue-400' },
@@ -28,6 +29,17 @@ export default function TablesHubPage() {
   const [newColor, setNewColor] = useState('blue')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [importType, setImportType] = useState<'csv' | 'excel' | null>(null)
+  const [showNewMenu, setShowNewMenu] = useState(false)
+  const newMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (newMenuRef.current && !newMenuRef.current.contains(e.target as Node)) setShowNewMenu(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -78,10 +90,37 @@ export default function TablesHubPage() {
             {tables.length} table{tables.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="size-4" data-icon="inline-start" />
-          {showForm ? 'Cancel' : 'New Table'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="size-4" data-icon="inline-start" />
+            {showForm ? 'Cancel' : 'New Table'}
+          </Button>
+          <div className="relative" ref={newMenuRef}>
+            <Button variant="outline" onClick={() => setShowNewMenu(!showNewMenu)}>
+              <Upload className="size-4" data-icon="inline-start" />
+              Import
+              <ChevronDown className="size-3 ml-1" />
+            </Button>
+            {showNewMenu && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border bg-popover p-1 shadow-xl">
+                <button
+                  onClick={() => { setShowNewMenu(false); setImportType('csv') }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Upload className="size-3.5" />
+                  CSV file
+                </button>
+                <button
+                  onClick={() => { setShowNewMenu(false); setImportType('excel') }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  Excel file
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {showForm && (
@@ -173,6 +212,14 @@ export default function TablesHubPage() {
             )
           })}
         </div>
+      )}
+
+      {importType && (
+        <ImportModal
+          fileType={importType}
+          onClose={() => setImportType(null)}
+          onSuccess={(slug) => { setImportType(null); router.push(`/tables/${slug}`) }}
+        />
       )}
     </div>
   )

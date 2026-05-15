@@ -17,6 +17,7 @@ import {
   type CustomColumnRow,
   type CustomDataRow,
 } from '../actions'
+import { ImportModal } from '../import-modal'
 import {
   Plus,
   Trash2,
@@ -41,6 +42,8 @@ import {
   Filter,
   Paintbrush,
   LayoutGrid,
+  Upload,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 const FIELD_TYPE_META: Record<string, { label: string; icon: typeof Type }> = {
@@ -108,6 +111,11 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
 
   const [error, setError] = useState<string | null>(null)
 
+  // Import
+  const [showAddTabMenu, setShowAddTabMenu] = useState(false)
+  const [importType, setImportType] = useState<'csv' | 'excel' | null>(null)
+  const addTabRef = useRef<HTMLDivElement>(null)
+
   const visibleColumns = useMemo(
     () => columns.filter(c => !hiddenCols.has(c.id)),
     [columns, hiddenCols]
@@ -169,6 +177,16 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
   useEffect(() => {
     if (editingCell && inputRef.current) inputRef.current.focus()
   }, [editingCell])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (addTabRef.current && !addTabRef.current.contains(e.target as Node)) {
+        setShowAddTabMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   // --- Inline cell editing ---
   function startEdit(rowId: string, col: CustomColumnRow, currentValue: unknown) {
@@ -326,12 +344,39 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
             {t.slug === slug && <ChevronDown className="size-3 ml-0.5 text-muted-foreground/50" />}
           </Link>
         ))}
-        <Link
-          href="/tables"
-          className="flex shrink-0 items-center gap-1 px-3 py-2.5 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-        >
-          <Plus className="size-3.5" />
-        </Link>
+        <div className="relative" ref={addTabRef}>
+          <button
+            onClick={() => setShowAddTabMenu(!showAddTabMenu)}
+            className="flex shrink-0 items-center gap-1 px-3 py-2.5 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+          >
+            <Plus className="size-3.5" />
+          </button>
+          {showAddTabMenu && (
+            <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-lg border bg-popover p-1 shadow-xl">
+              <button
+                onClick={() => { setShowAddTabMenu(false); router.push('/tables') }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Plus className="size-3.5" />
+                Start from scratch
+              </button>
+              <button
+                onClick={() => { setShowAddTabMenu(false); setImportType('csv') }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <Upload className="size-3.5" />
+                Import CSV
+              </button>
+              <button
+                onClick={() => { setShowAddTabMenu(false); setImportType('excel') }}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <FileSpreadsheet className="size-3.5" />
+                Import Excel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Views sidebar + main area ── */}
@@ -667,6 +712,15 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
       {/* Click-away for toolbar panels */}
       {(showHidePanel || showSortPanel || showFilterPanel) && (
         <div className="fixed inset-0 z-20" onClick={closeAllPanels} />
+      )}
+
+      {/* Import modal */}
+      {importType && (
+        <ImportModal
+          fileType={importType}
+          onClose={() => setImportType(null)}
+          onSuccess={(newSlug) => { setImportType(null); router.push(`/tables/${newSlug}`) }}
+        />
       )}
     </div>
   )
