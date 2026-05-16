@@ -28,9 +28,8 @@ export const leadStatusSchema = z.enum([
 export const leadQualitySchema = z.enum(['hot', 'warm', 'cold'])
 
 export const pipelineStageSchema = z.enum([
-  'imported', 'enriched', 'scored', 'outreach_ready',
-  'contacted', 'engaged', 'meeting_booked', 'proposal_sent',
-  'negotiation', 'closed_won', 'closed_lost',
+  'imported', 'researched', 'qualified', 'contacted', 'replied',
+  'meeting_booked', 'proposal_sent', 'negotiation', 'won', 'lost', 'nurture',
 ])
 
 // -- Deals --

@@ -19,7 +19,7 @@ export async function createImportBatch(formData: FormData) {
   const fileSize = Number(formData.get('fileSize'))
 
   // Rate limit imports
-  const rl = RATE_LIMITS.import(user.id)
+  const rl = await RATE_LIMITS.import(user.id)
   if (!rl.success) return { error: `Too many imports. Try again in ${rl.resetIn}s.` }
 
   if (!fileName || !fileSize) {

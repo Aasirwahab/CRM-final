@@ -147,6 +147,9 @@ export default function LeadsPage() {
                 quality: qualityFilter || undefined,
               })
               if (result.csv) {
+                if (result.capped) {
+                  alert(`Export capped at ${result.count.toLocaleString()} of ${result.total.toLocaleString()} leads. Apply filters to narrow results.`)
+                }
                 const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')

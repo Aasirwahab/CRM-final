@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, uuidSchema, pipelineStageSchema } from '@/lib/validate'
 
 export type PipelineLead = {
   id: string
@@ -56,6 +58,12 @@ export async function getPipelineLeads(): Promise<{ leads: PipelineLead[] }> {
 }
 
 export async function moveLeadStage(leadId: string, newStage: string, currentVersion: number) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
+  const stageCheck = validate(pipelineStageSchema, newStage)
+  if (stageCheck.error) return { error: stageCheck.error }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -70,36 +78,43 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
 
   if (!profile?.default_organization_id) return { error: 'No active organization' }
 
-  const { data: lead } = await service
-    .from('leads')
-    .select('pipeline_stage, version')
-    .eq('id', leadId)
-    .eq('organization_id', profile.default_organization_id)
-    .single()
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (!lead) return { error: 'Lead not found' }
+  try {
+    const { data: lead } = await service
+      .from('leads')
+      .select('pipeline_stage, version')
+      .eq('id', leadId)
+      .eq('organization_id', profile.default_organization_id)
+      .single()
 
-  if (lead.version !== currentVersion) {
-    return { error: 'Conflict: This lead was modified by someone else. Please refresh.' }
+    if (!lead) return { error: 'Lead not found' }
+
+    if (lead.version !== currentVersion) {
+      return { error: 'Conflict: This lead was modified by someone else. Please refresh.' }
+    }
+
+    const { error } = await service
+      .from('leads')
+      .update({ pipeline_stage: newStage, version: currentVersion + 1 })
+      .eq('id', leadId)
+      .eq('version', currentVersion)
+
+    if (error) return { error: 'Failed to update stage' }
+
+    await service.from('activity_logs').insert({
+      organization_id: profile.default_organization_id,
+      actor_profile_id: profile.id,
+      entity_type: 'lead',
+      entity_id: leadId,
+      action: 'updated',
+      before_json: { pipeline_stage: lead.pipeline_stage },
+      after_json: { pipeline_stage: newStage },
+    })
+
+    return { success: true, newVersion: currentVersion + 1 }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
   }
-
-  const { error } = await service
-    .from('leads')
-    .update({ pipeline_stage: newStage, version: currentVersion + 1 })
-    .eq('id', leadId)
-    .eq('version', currentVersion)
-
-  if (error) return { error: 'Failed to update stage' }
-
-  await service.from('activity_logs').insert({
-    organization_id: profile.default_organization_id,
-    actor_profile_id: profile.id,
-    entity_type: 'lead',
-    entity_id: leadId,
-    action: 'updated',
-    before_json: { pipeline_stage: lead.pipeline_stage },
-    after_json: { pipeline_stage: newStage },
-  })
-
-  return { success: true, newVersion: currentVersion + 1 }
 }

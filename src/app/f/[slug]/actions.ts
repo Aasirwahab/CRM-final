@@ -1,7 +1,7 @@
 'use server'
 
 import { createServiceClient } from '@/lib/supabase/service'
-import { rateLimit } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function submitPublicForm(
   formId: string,
@@ -9,7 +9,7 @@ export async function submitPublicForm(
   data: Record<string, string>
 ) {
   // Rate limit by form ID — 20 submissions per minute per form
-  const rl = rateLimit(`form:${formId}`, 20, 60_000)
+  const rl = await RATE_LIMITS.form(formId)
   if (!rl.success) return { error: 'Too many submissions. Please try again later.' }
 
   const service = createServiceClient()

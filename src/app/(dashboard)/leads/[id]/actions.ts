@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, uuidSchema, leadStatusSchema, noteSchema } from '@/lib/validate'
 
 export async function getLeadDetail(leadId: string) {
   const supabase = await createClient()
@@ -87,6 +89,12 @@ export async function getLeadDetail(leadId: string) {
 }
 
 export async function updateLeadStatus(leadId: string, status: string) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
+  const statusCheck = validate(leadStatusSchema, status)
+  if (statusCheck.error) return { error: statusCheck.error }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -103,39 +111,52 @@ export async function updateLeadStatus(leadId: string, status: string) {
     return { error: 'No active organization' }
   }
 
-  const { data: current } = await service
-    .from('leads')
-    .select('status, version')
-    .eq('id', leadId)
-    .eq('organization_id', profile.default_organization_id)
-    .single()
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (!current) return { error: 'Lead not found' }
+  try {
+    const { data: current } = await service
+      .from('leads')
+      .select('status, version')
+      .eq('id', leadId)
+      .eq('organization_id', profile.default_organization_id)
+      .single()
 
-  const { error } = await service
-    .from('leads')
-    .update({ status, version: current.version + 1 })
-    .eq('id', leadId)
-    .eq('version', current.version)
+    if (!current) return { error: 'Lead not found' }
 
-  if (error) {
-    return { error: 'Failed to update — someone else may have edited this lead' }
+    const { error } = await service
+      .from('leads')
+      .update({ status, version: current.version + 1 })
+      .eq('id', leadId)
+      .eq('version', current.version)
+
+    if (error) {
+      return { error: 'Failed to update — someone else may have edited this lead' }
+    }
+
+    await service.from('activity_logs').insert({
+      organization_id: profile.default_organization_id,
+      actor_profile_id: profile.id,
+      entity_type: 'lead',
+      entity_id: leadId,
+      action: 'updated',
+      before_json: { status: current.status },
+      after_json: { status },
+    })
+
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
   }
-
-  await service.from('activity_logs').insert({
-    organization_id: profile.default_organization_id,
-    actor_profile_id: profile.id,
-    entity_type: 'lead',
-    entity_id: leadId,
-    action: 'updated',
-    before_json: { status: current.status },
-    after_json: { status },
-  })
-
-  return { success: true }
 }
 
 export async function addNote(leadId: string, content: string) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
+  const contentCheck = validate(noteSchema, content)
+  if (contentCheck.error) return { error: contentCheck.error }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -152,22 +173,37 @@ export async function addNote(leadId: string, content: string) {
     return { error: 'No active organization' }
   }
 
-  const { error } = await service
-    .from('notes')
-    .insert({
-      organization_id: profile.default_organization_id,
-      entity_type: 'lead',
-      entity_id: leadId,
-      content,
-      created_by: profile.id,
-    })
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (error) return { error: 'Failed to add note' }
+  try {
+    const { error } = await service
+      .from('notes')
+      .insert({
+        organization_id: profile.default_organization_id,
+        entity_type: 'lead',
+        entity_id: leadId,
+        content,
+        created_by: profile.id,
+      })
 
-  return { success: true }
+    if (error) return { error: 'Failed to add note' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function addReply(leadId: string, parentId: string, content: string) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
+  const parentCheck = validate(uuidSchema, parentId)
+  if (parentCheck.error) return { error: 'Invalid parent ID' }
+
+  const contentCheck = validate(noteSchema, content)
+  if (contentCheck.error) return { error: contentCheck.error }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -182,17 +218,24 @@ export async function addReply(leadId: string, parentId: string, content: string
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
-  const { error } = await service
-    .from('notes')
-    .insert({
-      organization_id: profile.default_organization_id,
-      entity_type: 'lead',
-      entity_id: leadId,
-      parent_id: parentId,
-      content,
-      created_by: profile.id,
-    })
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (error) return { error: 'Failed to add reply' }
-  return { success: true }
+  try {
+    const { error } = await service
+      .from('notes')
+      .insert({
+        organization_id: profile.default_organization_id,
+        entity_type: 'lead',
+        entity_id: leadId,
+        parent_id: parentId,
+        content,
+        created_by: profile.id,
+      })
+
+    if (error) return { error: 'Failed to add reply' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }

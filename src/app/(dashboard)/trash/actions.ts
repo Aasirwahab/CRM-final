@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, uuidSchema } from '@/lib/validate'
 
 export async function getTrashedLeads() {
   const supabase = await createClient()
@@ -42,6 +44,9 @@ export async function getTrashedLeads() {
 }
 
 export async function restoreLead(leadId: string) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -56,26 +61,36 @@ export async function restoreLead(leadId: string) {
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
-  const { error } = await service
-    .from('leads')
-    .update({ deleted_at: null })
-    .eq('id', leadId)
-    .eq('organization_id', profile.default_organization_id)
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (error) return { error: error.message }
+  try {
+    const { error } = await service
+      .from('leads')
+      .update({ deleted_at: null })
+      .eq('id', leadId)
+      .eq('organization_id', profile.default_organization_id)
 
-  await service.from('activity_logs').insert({
-    organization_id: profile.default_organization_id,
-    actor_profile_id: profile.id,
-    action: 'restored',
-    entity_type: 'lead',
-    entity_id: leadId,
-  })
+    if (error) return { error: error.message }
 
-  return { success: true }
+    await service.from('activity_logs').insert({
+      organization_id: profile.default_organization_id,
+      actor_profile_id: profile.id,
+      action: 'restored',
+      entity_type: 'lead',
+      entity_id: leadId,
+    })
+
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function softDeleteLead(leadId: string) {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -90,21 +105,28 @@ export async function softDeleteLead(leadId: string) {
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
-  const { error } = await service
-    .from('leads')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', leadId)
-    .eq('organization_id', profile.default_organization_id)
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (error) return { error: error.message }
+  try {
+    const { error } = await service
+      .from('leads')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', leadId)
+      .eq('organization_id', profile.default_organization_id)
 
-  await service.from('activity_logs').insert({
-    organization_id: profile.default_organization_id,
-    actor_profile_id: profile.id,
-    action: 'deleted',
-    entity_type: 'lead',
-    entity_id: leadId,
-  })
+    if (error) return { error: error.message }
 
-  return { success: true }
+    await service.from('activity_logs').insert({
+      organization_id: profile.default_organization_id,
+      actor_profile_id: profile.id,
+      action: 'deleted',
+      entity_type: 'lead',
+      entity_id: leadId,
+    })
+
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }

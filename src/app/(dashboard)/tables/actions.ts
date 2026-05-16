@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,39 +185,45 @@ export async function createTable(data: {
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
+  const rl = await RATE_LIMITS.write(ctx.profileId)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
   const name = data.name.trim()
   if (!name) return { error: 'Name is required' }
 
-  // Generate slug
-  const { data: slugResult } = await ctx.service
-    .rpc('generate_table_slug', { p_name: name, p_org_id: ctx.orgId })
+  try {
+    const { data: slugResult } = await ctx.service
+      .rpc('generate_table_slug', { p_name: name, p_org_id: ctx.orgId })
 
-  const slug = slugResult as string
-  if (!slug) return { error: 'Failed to generate slug' }
+    const slug = slugResult as string
+    if (!slug) return { error: 'Failed to generate slug' }
 
-  const { error } = await ctx.service
-    .from('custom_tables')
-    .insert({
+    const { error } = await ctx.service
+      .from('custom_tables')
+      .insert({
+        organization_id: ctx.orgId,
+        name,
+        slug,
+        description: data.description || null,
+        icon: data.icon || null,
+        color: data.color || null,
+        created_by: ctx.profileId,
+      })
+
+    if (error) return { error: 'Failed to create table' }
+
+    await ctx.service.from('activity_logs').insert({
       organization_id: ctx.orgId,
-      name,
-      slug,
-      description: data.description || null,
-      icon: data.icon || null,
-      color: data.color || null,
-      created_by: ctx.profileId,
+      actor_profile_id: ctx.profileId,
+      action: 'created',
+      entity_type: 'custom_table',
+      entity_id: slug,
     })
 
-  if (error) return { error: 'Failed to create table' }
-
-  await ctx.service.from('activity_logs').insert({
-    organization_id: ctx.orgId,
-    actor_profile_id: ctx.profileId,
-    action: 'created',
-    entity_type: 'custom_table',
-    entity_id: slug,
-  })
-
-  return { slug }
+    return { slug }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function updateTable(
@@ -226,6 +233,9 @@ export async function updateTable(
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
+  const rl = await RATE_LIMITS.write(ctx.profileId)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
   const updates: Record<string, unknown> = {}
   if (data.name !== undefined) updates.name = data.name.trim()
   if (data.description !== undefined) updates.description = data.description || null
@@ -234,14 +244,18 @@ export async function updateTable(
 
   if (Object.keys(updates).length === 0) return { error: 'Nothing to update' }
 
-  const { error } = await ctx.service
-    .from('custom_tables')
-    .update(updates)
-    .eq('id', tableId)
-    .eq('organization_id', ctx.orgId)
+  try {
+    const { error } = await ctx.service
+      .from('custom_tables')
+      .update(updates)
+      .eq('id', tableId)
+      .eq('organization_id', ctx.orgId)
 
-  if (error) return { error: 'Failed to update table' }
-  return { success: true }
+    if (error) return { error: 'Failed to update table' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function archiveTable(
@@ -250,23 +264,30 @@ export async function archiveTable(
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
-  const { error } = await ctx.service
-    .from('custom_tables')
-    .update({ archived_at: new Date().toISOString() })
-    .eq('id', tableId)
-    .eq('organization_id', ctx.orgId)
+  const rl = await RATE_LIMITS.write(ctx.profileId)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  if (error) return { error: 'Failed to archive table' }
+  try {
+    const { error } = await ctx.service
+      .from('custom_tables')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', tableId)
+      .eq('organization_id', ctx.orgId)
 
-  await ctx.service.from('activity_logs').insert({
-    organization_id: ctx.orgId,
-    actor_profile_id: ctx.profileId,
-    action: 'deleted',
-    entity_type: 'custom_table',
-    entity_id: tableId,
-  })
+    if (error) return { error: 'Failed to archive table' }
 
-  return { success: true }
+    await ctx.service.from('activity_logs').insert({
+      organization_id: ctx.orgId,
+      actor_profile_id: ctx.profileId,
+      action: 'deleted',
+      entity_type: 'custom_table',
+      entity_id: tableId,
+    })
+
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +306,9 @@ export async function addColumn(
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
+  const rl = await RATE_LIMITS.write(ctx.profileId)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
   const name = data.name.trim()
   if (!name) return { error: 'Column name is required' }
 
@@ -292,40 +316,42 @@ export async function addColumn(
     return { error: 'Invalid field type' }
   }
 
-  // Generate stable key from name
-  const key = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'col'
+  try {
+    const key = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'col'
 
-  // Get next position
-  const { data: existing } = await ctx.service
-    .from('custom_columns')
-    .select('position')
-    .eq('table_id', tableId)
-    .is('archived_at', null)
-    .order('position', { ascending: false })
-    .limit(1)
+    const { data: existing } = await ctx.service
+      .from('custom_columns')
+      .select('position')
+      .eq('table_id', tableId)
+      .is('archived_at', null)
+      .order('position', { ascending: false })
+      .limit(1)
 
-  const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0
+    const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0
 
-  const { data: column, error } = await ctx.service
-    .from('custom_columns')
-    .insert({
-      table_id: tableId,
-      organization_id: ctx.orgId,
-      name,
-      key,
-      field_type: data.field_type,
-      position: nextPosition,
-      is_required: data.is_required ?? false,
-      options: data.options ?? null,
-    })
-    .select()
-    .single()
+    const { data: column, error } = await ctx.service
+      .from('custom_columns')
+      .insert({
+        table_id: tableId,
+        organization_id: ctx.orgId,
+        name,
+        key,
+        field_type: data.field_type,
+        position: nextPosition,
+        is_required: data.is_required ?? false,
+        options: data.options ?? null,
+      })
+      .select()
+      .single()
 
-  if (error) return { error: 'Failed to add column — key may already exist' }
-  return { column }
+    if (error) return { error: 'Failed to add column — key may already exist' }
+    return { column }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function updateColumn(
@@ -447,32 +473,39 @@ export async function createRow(
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
-  const { data: row, error } = await ctx.service
-    .from('custom_rows')
-    .insert({
-      table_id: tableId,
+  const rl = await RATE_LIMITS.write(ctx.profileId)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
+  try {
+    const { data: row, error } = await ctx.service
+      .from('custom_rows')
+      .insert({
+        table_id: tableId,
+        organization_id: ctx.orgId,
+        cells: data.cells,
+        linked_lead_id: data.linked_lead_id || null,
+        linked_company_id: data.linked_company_id || null,
+        linked_deal_id: data.linked_deal_id || null,
+        created_by: ctx.profileId,
+      })
+      .select()
+      .single()
+
+    if (error) return { error: 'Failed to create row' }
+
+    await ctx.service.from('activity_logs').insert({
       organization_id: ctx.orgId,
-      cells: data.cells,
-      linked_lead_id: data.linked_lead_id || null,
-      linked_company_id: data.linked_company_id || null,
-      linked_deal_id: data.linked_deal_id || null,
-      created_by: ctx.profileId,
+      actor_profile_id: ctx.profileId,
+      action: 'created',
+      entity_type: 'custom_row',
+      entity_id: row.id,
+      after_json: { table_id: tableId, cells: data.cells },
     })
-    .select()
-    .single()
 
-  if (error) return { error: 'Failed to create row' }
-
-  await ctx.service.from('activity_logs').insert({
-    organization_id: ctx.orgId,
-    actor_profile_id: ctx.profileId,
-    action: 'created',
-    entity_type: 'custom_row',
-    entity_id: row.id,
-    after_json: { table_id: tableId, cells: data.cells },
-  })
-
-  return { row }
+    return { row }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function updateRow(
@@ -607,74 +640,81 @@ export async function createTableFromImport(input: {
   const ctx = await getAuthContext()
   if (!ctx) return { error: 'No active organization' }
 
+  const rl = await RATE_LIMITS.import(ctx.profileId)
+  if (!rl.success) return { error: `Too many imports. Try again in ${rl.resetIn}s.` }
+
   if (!input.name.trim()) return { error: 'Table name is required' }
   if (input.columns.length === 0) return { error: 'At least one column is required' }
   if (input.rows.length > 5000) return { error: 'Maximum 5,000 rows per import' }
 
-  const { data: slugData } = await ctx.service.rpc('generate_table_slug', {
-    org: ctx.orgId,
-    base: input.name.trim(),
-  })
-  const slug = slugData ?? input.name.toLowerCase().replace(/\s+/g, '-')
-
-  const { data: table, error: tableErr } = await ctx.service
-    .from('custom_tables')
-    .insert({
-      organization_id: ctx.orgId,
-      name: input.name.trim(),
-      slug,
-      color: input.color || 'blue',
-      created_by: ctx.profileId,
+  try {
+    const { data: slugData } = await ctx.service.rpc('generate_table_slug', {
+      org: ctx.orgId,
+      base: input.name.trim(),
     })
-    .select('id')
-    .single()
+    const slug = slugData ?? input.name.toLowerCase().replace(/\s+/g, '-')
 
-  if (tableErr || !table) return { error: 'Failed to create table' }
-
-  const colInserts = input.columns.map((col, i) => ({
-    table_id: table.id,
-    organization_id: ctx.orgId,
-    name: col.name,
-    key: col.key,
-    field_type: col.field_type,
-    position: i,
-  }))
-
-  const { error: colErr } = await ctx.service
-    .from('custom_columns')
-    .insert(colInserts)
-
-  if (colErr) return { error: 'Failed to create columns' }
-
-  if (input.rows.length > 0) {
-    const BATCH = 500
-    for (let i = 0; i < input.rows.length; i += BATCH) {
-      const batch = input.rows.slice(i, i + BATCH).map((cells) => ({
-        table_id: table.id,
+    const { data: table, error: tableErr } = await ctx.service
+      .from('custom_tables')
+      .insert({
         organization_id: ctx.orgId,
-        cells,
+        name: input.name.trim(),
+        slug,
+        color: input.color || 'blue',
         created_by: ctx.profileId,
-      }))
-      const { error: rowErr } = await ctx.service
-        .from('custom_rows')
-        .insert(batch)
-      if (rowErr) return { error: `Failed to import rows (batch starting at ${i})` }
+      })
+      .select('id')
+      .single()
+
+    if (tableErr || !table) return { error: 'Failed to create table' }
+
+    const colInserts = input.columns.map((col, i) => ({
+      table_id: table.id,
+      organization_id: ctx.orgId,
+      name: col.name,
+      key: col.key,
+      field_type: col.field_type,
+      position: i,
+    }))
+
+    const { error: colErr } = await ctx.service
+      .from('custom_columns')
+      .insert(colInserts)
+
+    if (colErr) return { error: 'Failed to create columns' }
+
+    if (input.rows.length > 0) {
+      const BATCH = 500
+      for (let i = 0; i < input.rows.length; i += BATCH) {
+        const batch = input.rows.slice(i, i + BATCH).map((cells) => ({
+          table_id: table.id,
+          organization_id: ctx.orgId,
+          cells,
+          created_by: ctx.profileId,
+        }))
+        const { error: rowErr } = await ctx.service
+          .from('custom_rows')
+          .insert(batch)
+        if (rowErr) return { error: `Failed to import rows (batch starting at ${i})` }
+      }
     }
+
+    await ctx.service.from('activity_logs').insert({
+      organization_id: ctx.orgId,
+      actor_profile_id: ctx.profileId,
+      action: 'created',
+      entity_type: 'custom_table',
+      entity_id: table.id,
+      after_json: {
+        name: input.name,
+        imported: true,
+        column_count: input.columns.length,
+        row_count: input.rows.length,
+      },
+    })
+
+    return { slug }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
   }
-
-  await ctx.service.from('activity_logs').insert({
-    organization_id: ctx.orgId,
-    actor_profile_id: ctx.profileId,
-    action: 'created',
-    entity_type: 'custom_table',
-    entity_id: table.id,
-    after_json: {
-      name: input.name,
-      imported: true,
-      column_count: input.columns.length,
-      row_count: input.rows.length,
-    },
-  })
-
-  return { slug }
 }

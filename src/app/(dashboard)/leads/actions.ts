@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, uuidSchema } from '@/lib/validate'
 
 export type LeadRow = {
   id: string
@@ -46,54 +48,28 @@ export async function getLeads(params: {
   const orgId = profile.default_organization_id
   const { page, pageSize, search, status, quality, sortBy = 'created_at', sortDesc = true } = params
 
-  // Count query
-  let countQuery = service
-    .from('leads')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', orgId)
-    .is('deleted_at', null)
-
-  if (status) countQuery = countQuery.eq('status', status)
-  if (quality) countQuery = countQuery.eq('lead_quality', quality)
-
-  const { count } = await countQuery
-
-  // Data query with joins
-  let query = service
-    .from('leads')
-    .select(`
-      id,
-      source,
-      status,
-      lead_score,
-      lead_quality,
-      ai_status,
-      created_at,
-      companies(name),
-      contacts(full_name, email, phone)
-    `)
-    .eq('organization_id', orgId)
-    .is('deleted_at', null)
-
-  if (status) query = query.eq('status', status)
-  if (quality) query = query.eq('lead_quality', quality)
-
-  // Sort
   const validSortColumns = ['created_at', 'lead_score', 'status', 'lead_quality']
   const col = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
-  query = query.order(col, { ascending: !sortDesc })
 
-  // Pagination
-  const from = page * pageSize
-  query = query.range(from, from + pageSize - 1)
-
-  const { data, error } = await query
+  const { data, error } = await service.rpc('search_leads', {
+    p_org_id: orgId,
+    p_search: search || null,
+    p_status: status || null,
+    p_quality: quality || null,
+    p_sort_by: col,
+    p_sort_desc: sortDesc,
+    p_limit: pageSize,
+    p_offset: page * pageSize,
+  })
 
   if (error) {
     return { leads: [], total: 0 }
   }
 
-  const leads: LeadRow[] = (data ?? []).map((row: any) => ({
+  const rows = data ?? []
+  const total = rows.length > 0 ? Number(rows[0].total_count) : 0
+
+  const leads: LeadRow[] = rows.map((row: any) => ({
     id: row.id,
     source: row.source,
     status: row.status,
@@ -101,24 +77,13 @@ export async function getLeads(params: {
     lead_quality: row.lead_quality,
     ai_status: row.ai_status,
     created_at: row.created_at,
-    company_name: row.companies?.name ?? null,
-    contact_name: row.contacts?.full_name ?? null,
-    contact_email: row.contacts?.email ?? null,
-    contact_phone: row.contacts?.phone ?? null,
+    company_name: row.company_name ?? null,
+    contact_name: row.contact_name ?? null,
+    contact_email: row.contact_email ?? null,
+    contact_phone: row.contact_phone ?? null,
   }))
 
-  // Client-side search filter (for now — upgrade to full-text search later)
-  let filtered = leads
-  if (search) {
-    const s = search.toLowerCase()
-    filtered = leads.filter(l =>
-      l.company_name?.toLowerCase().includes(s) ||
-      l.contact_name?.toLowerCase().includes(s) ||
-      l.contact_email?.toLowerCase().includes(s)
-    )
-  }
-
-  return { leads: filtered, total: count ?? 0 }
+  return { leads, total }
 }
 
 export async function inlineUpdateLead(
@@ -126,6 +91,9 @@ export async function inlineUpdateLead(
   field: 'status' | 'lead_quality' | 'source',
   value: string
 ): Promise<{ success?: boolean; error?: string }> {
+  const idCheck = validate(uuidSchema, leadId)
+  if (idCheck.error) return { error: 'Invalid lead ID' }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -140,6 +108,9 @@ export async function inlineUpdateLead(
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many updates. Try again in ${rl.resetIn}s.` }
+
   // Validate field + value
   const ALLOWED: Record<string, string[]> = {
     status: ['new', 'contacted', 'qualified', 'unqualified', 'nurture', 'converted', 'lost'],
@@ -150,43 +121,45 @@ export async function inlineUpdateLead(
   if (!(field in ALLOWED)) return { error: 'Invalid field' }
   if (ALLOWED[field].length > 0 && !ALLOWED[field].includes(value)) return { error: 'Invalid value' }
 
-  // Get current value for audit log
-  const { data: current } = await service
-    .from('leads')
-    .select(`${field}, version`)
-    .eq('id', leadId)
-    .eq('organization_id', profile.default_organization_id)
-    .single()
+  try {
+    const { data: current } = await service
+      .from('leads')
+      .select(`${field}, version`)
+      .eq('id', leadId)
+      .eq('organization_id', profile.default_organization_id)
+      .single()
 
-  if (!current) return { error: 'Lead not found' }
+    if (!current) return { error: 'Lead not found' }
 
-  const { error } = await service
-    .from('leads')
-    .update({ [field]: value, version: current.version + 1 })
-    .eq('id', leadId)
-    .eq('version', current.version)
+    const { error } = await service
+      .from('leads')
+      .update({ [field]: value, version: current.version + 1 })
+      .eq('id', leadId)
+      .eq('version', current.version)
 
-  if (error) return { error: 'Update conflict — please refresh' }
+    if (error) return { error: 'Update conflict — please refresh' }
 
-  // Audit log
-  await service.from('activity_logs').insert({
-    organization_id: profile.default_organization_id,
-    actor_profile_id: profile.id,
-    action: 'updated',
-    entity_type: 'lead',
-    entity_id: leadId,
-    before_json: { [field]: (current as any)[field] },
-    after_json: { [field]: value },
-  })
+    await service.from('activity_logs').insert({
+      organization_id: profile.default_organization_id,
+      actor_profile_id: profile.id,
+      action: 'updated',
+      entity_type: 'lead',
+      entity_id: leadId,
+      before_json: { [field]: (current as any)[field] },
+      after_json: { [field]: value },
+    })
 
-  return { success: true }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function exportLeadsCSV(params: {
   search?: string
   status?: string
   quality?: string
-}): Promise<{ csv: string; count: number }> {
+}): Promise<{ csv: string; count: number; total: number; capped: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -199,9 +172,26 @@ export async function exportLeadsCSV(params: {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile?.default_organization_id) return { csv: '', count: 0 }
+  if (!profile?.default_organization_id) return { csv: '', count: 0, total: 0, capped: false }
+
+  const rl = await RATE_LIMITS.import(user.id)
+  if (!rl.success) return { csv: '', count: 0, total: 0, capped: false }
 
   const orgId = profile.default_organization_id
+  const EXPORT_LIMIT = 5000
+
+  // Get total matching count
+  let countQuery = service
+    .from('leads')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', orgId)
+    .is('deleted_at', null)
+
+  if (params.status) countQuery = countQuery.eq('status', params.status)
+  if (params.quality) countQuery = countQuery.eq('lead_quality', params.quality)
+
+  const { count: totalCount } = await countQuery
+  const total = totalCount ?? 0
 
   let query = service
     .from('leads')
@@ -215,14 +205,14 @@ export async function exportLeadsCSV(params: {
     .eq('organization_id', orgId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(5000)
+    .limit(EXPORT_LIMIT)
 
   if (params.status) query = query.eq('status', params.status)
   if (params.quality) query = query.eq('lead_quality', params.quality)
 
   const { data } = await query
 
-  if (!data || data.length === 0) return { csv: '', count: 0 }
+  if (!data || data.length === 0) return { csv: '', count: 0, total, capped: false }
 
   // Build CSV
   const headers = [
@@ -267,7 +257,7 @@ export async function exportLeadsCSV(params: {
     after_json: { count: data.length, filters: params },
   })
 
-  return { csv, count: data.length }
+  return { csv, count: data.length, total, capped: total > EXPORT_LIMIT }
 }
 
 export async function getLeadMetrics(): Promise<{

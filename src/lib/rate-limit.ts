@@ -1,65 +1,45 @@
-/**
- * In-memory rate limiter using sliding window.
- * For production at scale, replace with Redis (Upstash) based limiter.
- */
-
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-
-// Clean up expired entries every 60 seconds
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, val] of rateLimitMap) {
-    if (now > val.resetTime) rateLimitMap.delete(key)
-  }
-}, 60_000)
+import { Ratelimit } from '@upstash/ratelimit'
+import { redis } from '@/lib/redis'
 
 export interface RateLimitResult {
   success: boolean
   limit: number
   remaining: number
-  resetIn: number // seconds until reset
+  resetIn: number
 }
 
-/**
- * Check rate limit for a given key.
- * @param key - unique identifier (e.g. userId, IP)
- * @param limit - max requests per window
- * @param windowMs - time window in milliseconds (default 60s)
- */
-export function rateLimit(
-  key: string,
-  limit: number = 10,
-  windowMs: number = 60_000
-): RateLimitResult {
-  const now = Date.now()
-  const entry = rateLimitMap.get(key)
-
-  if (!entry || now > entry.resetTime) {
-    // New window
-    rateLimitMap.set(key, { count: 1, resetTime: now + windowMs })
-    return { success: true, limit, remaining: limit - 1, resetIn: Math.ceil(windowMs / 1000) }
-  }
-
-  if (entry.count >= limit) {
-    const resetIn = Math.ceil((entry.resetTime - now) / 1000)
-    return { success: false, limit, remaining: 0, resetIn }
-  }
-
-  entry.count++
-  const resetIn = Math.ceil((entry.resetTime - now) / 1000)
-  return { success: true, limit, remaining: limit - entry.count, resetIn }
+function createLimiter(prefix: string, tokens: number, windowSec: number) {
+  return new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(tokens, `${windowSec} s`),
+    prefix: `rl:${prefix}`,
+    analytics: false,
+  })
 }
 
-// Pre-configured rate limiters for different actions
+const limiters = {
+  auth: createLimiter('auth', 5, 60),
+  aiResearch: createLimiter('ai', 10, 60),
+  import: createLimiter('import', 3, 60),
+  api: createLimiter('api', 60, 60),
+  write: createLimiter('write', 30, 60),
+  form: createLimiter('form', 20, 60),
+}
+
+async function check(
+  limiter: Ratelimit,
+  key: string
+): Promise<RateLimitResult> {
+  const { success, limit, remaining, reset } = await limiter.limit(key)
+  const resetIn = Math.max(0, Math.ceil((reset - Date.now()) / 1000))
+  return { success, limit, remaining, resetIn }
+}
+
 export const RATE_LIMITS = {
-  // Auth: 5 attempts per minute
-  auth: (key: string) => rateLimit(`auth:${key}`, 5, 60_000),
-  // AI Research: 10 per minute per user
-  aiResearch: (key: string) => rateLimit(`ai:${key}`, 10, 60_000),
-  // Import: 3 per minute per user
-  import: (key: string) => rateLimit(`import:${key}`, 3, 60_000),
-  // General API: 60 per minute per user
-  api: (key: string) => rateLimit(`api:${key}`, 60, 60_000),
-  // Notes/updates: 30 per minute
-  write: (key: string) => rateLimit(`write:${key}`, 30, 60_000),
+  auth: (key: string) => check(limiters.auth, key),
+  aiResearch: (key: string) => check(limiters.aiResearch, key),
+  import: (key: string) => check(limiters.import, key),
+  api: (key: string) => check(limiters.api, key),
+  write: (key: string) => check(limiters.write, key),
+  form: (key: string) => check(limiters.form, key),
 }

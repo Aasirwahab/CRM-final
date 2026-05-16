@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, createDealSchema } from '@/lib/validate'
 
 export type DealRow = {
   id: string
@@ -83,18 +85,29 @@ export async function createDeal(data: {
 
   if (!profile?.default_organization_id) return { error: 'No active organization' }
 
-  const { error } = await service
-    .from('deals')
-    .insert({
-      organization_id: profile.default_organization_id,
-      title: data.title,
-      value: data.value ?? null,
-      lead_id: data.lead_id || null,
-      expected_close_date: data.expected_close_date || null,
-      owner_id: profile.id,
-      created_by: profile.id,
-    })
+  const v = validate(createDealSchema, data)
+  if (v.error) return { error: v.error }
+  const valid = v.data!
 
-  if (error) return { error: 'Failed to create deal' }
-  return { success: true }
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
+  try {
+    const { error } = await service
+      .from('deals')
+      .insert({
+        organization_id: profile.default_organization_id,
+        title: valid.title,
+        value: valid.value ?? null,
+        lead_id: valid.leadId || null,
+        expected_close_date: data.expected_close_date || null,
+        owner_id: profile.id,
+        created_by: profile.id,
+      })
+
+    if (error) return { error: 'Failed to create deal' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }

@@ -1,9 +1,54 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+
+function getIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    '127.0.0.1'
+  )
+}
 
 const PUBLIC_ROUTES = ['/sign-in', '/sign-up', '/auth/callback', '/auth/confirm', '/reset-password', '/f/', '/privacy', '/terms']
 
 export default async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const ip = getIP(request)
+
+  // Rate limit auth routes (5/min per IP)
+  if (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || pathname.startsWith('/reset-password')) {
+    const rl = await RATE_LIMITS.auth(ip)
+    if (!rl.success) {
+      return new NextResponse('Too many requests. Please try again later.', {
+        status: 429,
+        headers: { 'Retry-After': String(rl.resetIn) },
+      })
+    }
+  }
+
+  // Rate limit API routes (60/min per IP, skip cron — those use secret auth)
+  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/cron')) {
+    const rl = await RATE_LIMITS.api(ip)
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': String(rl.resetIn) } }
+      )
+    }
+  }
+
+  // Rate limit public form pages (20/min per IP)
+  if (pathname.startsWith('/f/')) {
+    const rl = await RATE_LIMITS.form(ip)
+    if (!rl.success) {
+      return new NextResponse('Too many submissions. Please try again later.', {
+        status: 429,
+        headers: { 'Retry-After': String(rl.resetIn) },
+      })
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -31,7 +76,6 @@ export default async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
 
   if (!user && !isPublicRoute && pathname !== '/') {

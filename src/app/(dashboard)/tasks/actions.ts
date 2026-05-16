@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { RATE_LIMITS } from '@/lib/rate-limit'
+import { validate, createTaskSchema, taskStatusSchema, uuidSchema } from '@/lib/validate'
 
 export type TaskRow = {
   id: string
@@ -87,25 +89,42 @@ export async function createTask(data: {
 
   if (!profile?.default_organization_id) return { error: 'No active organization' }
 
-  const { error } = await service
-    .from('tasks')
-    .insert({
-      organization_id: profile.default_organization_id,
-      title: data.title,
-      description: data.description || null,
-      priority: data.priority,
-      due_at: data.due_at || null,
-      lead_id: data.lead_id || null,
-      deal_id: data.deal_id || null,
-      assigned_to: profile.id,
-      created_by: profile.id,
-    })
+  const v = validate(createTaskSchema, { title: data.title, description: data.description, priority: data.priority, dueDate: data.due_at, leadId: data.lead_id, dealId: data.deal_id })
+  if (v.error) return { error: v.error }
+  const valid = v.data!
 
-  if (error) return { error: 'Failed to create task' }
-  return { success: true }
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
+  try {
+    const { error } = await service
+      .from('tasks')
+      .insert({
+        organization_id: profile.default_organization_id,
+        title: valid.title,
+        description: valid.description || null,
+        priority: valid.priority,
+        due_at: valid.dueDate || null,
+        lead_id: valid.leadId || null,
+        deal_id: valid.dealId || null,
+        assigned_to: profile.id,
+        created_by: profile.id,
+      })
+
+    if (error) return { error: 'Failed to create task' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function updateTaskStatus(taskId: string, status: string) {
+  const idCheck = validate(uuidSchema, taskId)
+  if (idCheck.error) return { error: 'Invalid task ID' }
+
+  const statusCheck = validate(taskStatusSchema, status)
+  if (statusCheck.error) return { error: statusCheck.error }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -120,9 +139,12 @@ export async function updateTaskStatus(taskId: string, status: string) {
 
   if (!profile?.default_organization_id) return { error: 'No active organization' }
 
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
   const { error } = await service
     .from('tasks')
-    .update({ status })
+    .update({ status: statusCheck.data })
     .eq('id', taskId)
     .eq('organization_id', profile.default_organization_id)
 

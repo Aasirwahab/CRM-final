@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scoreLeadRule } from '@/lib/scoring'
+import { RATE_LIMITS } from '@/lib/rate-limit'
 
 export async function getLeadForms() {
   const supabase = await createClient()
@@ -44,25 +45,32 @@ export async function createLeadForm(name: string) {
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    + '-' + crypto.randomUUID().slice(0, 8)
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  const { data, error } = await service
-    .from('lead_forms')
-    .insert({
-      organization_id: profile.default_organization_id,
-      name: name.trim(),
-      slug,
-      created_by: profile.id,
-    })
-    .select('id, slug')
-    .single()
+  try {
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      + '-' + crypto.randomUUID().slice(0, 8)
 
-  if (error) return { error: error.message }
-  return { success: true, id: data.id, slug: data.slug }
+    const { data, error } = await service
+      .from('lead_forms')
+      .insert({
+        organization_id: profile.default_organization_id,
+        name: name.trim(),
+        slug,
+        created_by: profile.id,
+      })
+      .select('id, slug')
+      .single()
+
+    if (error) return { error: error.message }
+    return { success: true, id: data.id, slug: data.slug }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function toggleFormActive(formId: string, isActive: boolean) {
@@ -80,13 +88,20 @@ export async function toggleFormActive(formId: string, isActive: boolean) {
 
   if (!profile?.default_organization_id) return { error: 'No org' }
 
-  await service
-    .from('lead_forms')
-    .update({ is_active: isActive })
-    .eq('id', formId)
-    .eq('organization_id', profile.default_organization_id)
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
 
-  return { success: true }
+  try {
+    await service
+      .from('lead_forms')
+      .update({ is_active: isActive })
+      .eq('id', formId)
+      .eq('organization_id', profile.default_organization_id)
+
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
 }
 
 export async function getFormSubmissions(formId: string) {
@@ -139,85 +154,86 @@ export async function convertSubmissionToLead(submissionId: string) {
     .eq('organization_id', orgId)
     .single()
 
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
   if (!submission) return { error: 'Submission not found' }
   if (submission.converted_lead_id) return { error: 'Already converted' }
 
-  const d = submission.data_json as Record<string, string>
+  try {
+    const d = submission.data_json as Record<string, string>
 
-  // Create company
-  const { data: company } = await service
-    .from('companies')
-    .insert({
+    const { data: company } = await service
+      .from('companies')
+      .insert({
+        organization_id: orgId,
+        name: d.company_name || d.contact_name || 'Unknown',
+        website: d.website || null,
+        industry: d.industry || null,
+        location: d.location || null,
+        created_by: profile.id,
+      })
+      .select('id')
+      .single()
+
+    const { data: contact } = await service
+      .from('contacts')
+      .insert({
+        organization_id: orgId,
+        company_id: company?.id || null,
+        full_name: d.contact_name || 'Unknown',
+        email: d.email || null,
+        phone: d.phone || null,
+        job_title: d.job_title || null,
+        created_by: profile.id,
+      })
+      .select('id')
+      .single()
+
+    const scoreInput = {
+      email: d.email,
+      phone: d.phone,
+      website: d.website,
+      jobTitle: d.job_title,
+      companyName: d.company_name,
+      industry: d.industry,
+      location: d.location,
+    }
+    const { score, quality } = scoreLeadRule(scoreInput)
+
+    const { data: lead } = await service
+      .from('leads')
+      .insert({
+        organization_id: orgId,
+        company_id: company?.id || null,
+        contact_id: contact?.id || null,
+        source: 'web_form',
+        status: 'new',
+        lead_score: score,
+        lead_quality: quality,
+        created_by: profile.id,
+      })
+      .select('id')
+      .single()
+
+    if (!lead) return { error: 'Failed to create lead' }
+
+    await service
+      .from('lead_form_submissions')
+      .update({ converted_lead_id: lead.id })
+      .eq('id', submissionId)
+
+    await service.from('activity_logs').insert({
       organization_id: orgId,
-      name: d.company_name || d.contact_name || 'Unknown',
-      website: d.website || null,
-      industry: d.industry || null,
-      location: d.location || null,
-      created_by: profile.id,
+      actor_profile_id: profile.id,
+      action: 'created',
+      entity_type: 'lead',
+      entity_id: lead.id,
+      after_json: { source: 'web_form', submission_id: submissionId },
     })
-    .select('id')
-    .single()
 
-  // Create contact
-  const { data: contact } = await service
-    .from('contacts')
-    .insert({
-      organization_id: orgId,
-      company_id: company?.id || null,
-      full_name: d.contact_name || 'Unknown',
-      email: d.email || null,
-      phone: d.phone || null,
-      job_title: d.job_title || null,
-      created_by: profile.id,
-    })
-    .select('id')
-    .single()
-
-  // Score the lead
-  const scoreInput = {
-    email: d.email,
-    phone: d.phone,
-    website: d.website,
-    jobTitle: d.job_title,
-    companyName: d.company_name,
-    industry: d.industry,
-    location: d.location,
+    return { success: true, leadId: lead.id }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
   }
-  const { score, quality } = scoreLeadRule(scoreInput)
-
-  // Create lead
-  const { data: lead } = await service
-    .from('leads')
-    .insert({
-      organization_id: orgId,
-      company_id: company?.id || null,
-      contact_id: contact?.id || null,
-      source: 'web_form',
-      status: 'new',
-      lead_score: score,
-      lead_quality: quality,
-      created_by: profile.id,
-    })
-    .select('id')
-    .single()
-
-  if (!lead) return { error: 'Failed to create lead' }
-
-  // Mark submission as converted
-  await service
-    .from('lead_form_submissions')
-    .update({ converted_lead_id: lead.id })
-    .eq('id', submissionId)
-
-  // Activity log
-  await service.from('activity_logs').insert({
-    organization_id: orgId,
-    actor_profile_id: profile.id,
-    action: 'created',
-    entity_type: 'lead',
-    entity_id: lead.id,
-    after_json: { source: 'web_form', submission_id: submissionId },
-  })
-
-  return { success: true, leadId: lead.id }
 }

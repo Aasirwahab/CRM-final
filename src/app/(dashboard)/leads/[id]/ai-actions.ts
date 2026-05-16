@@ -18,7 +18,7 @@ export async function runAIResearch(leadId: string, tier: 'basic' | 'standard' =
   if (!user) redirect('/sign-in')
 
   // Rate limit AI requests
-  const rl = RATE_LIMITS.aiResearch(user.id)
+  const rl = await RATE_LIMITS.aiResearch(user.id)
   if (!rl.success) return { error: `Too many AI requests. Try again in ${rl.resetIn}s.` }
 
   const service = createServiceClient()
