@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { getPipelineLeads, moveLeadStage, type PipelineLead } from './actions'
+import { getPipelineLeads, moveLeadStage, syncLeadStatuses, type PipelineLead } from './actions'
 import { StageColumn } from './stage-column'
 import { LeadCard } from './lead-card'
 
@@ -40,6 +40,7 @@ export default function PipelinePage() {
 
   useEffect(() => {
     async function load() {
+      await syncLeadStatuses()
       const result = await getPipelineLeads()
       setLeads(result.leads)
       setLoading(false)

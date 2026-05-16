@@ -57,6 +57,20 @@ export async function getPipelineLeads(): Promise<{ leads: PipelineLead[] }> {
   return { leads }
 }
 
+const STAGE_TO_STATUS: Record<string, string> = {
+  imported: 'new',
+  researched: 'new',
+  qualified: 'qualified',
+  contacted: 'contacted',
+  replied: 'contacted',
+  meeting_booked: 'contacted',
+  proposal_sent: 'contacted',
+  negotiation: 'contacted',
+  won: 'converted',
+  lost: 'lost',
+  nurture: 'nurture',
+}
+
 export async function moveLeadStage(leadId: string, newStage: string, currentVersion: number) {
   const idCheck = validate(uuidSchema, leadId)
   if (idCheck.error) return { error: 'Invalid lead ID' }
@@ -84,7 +98,7 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
   try {
     const { data: lead } = await service
       .from('leads')
-      .select('pipeline_stage, version')
+      .select('pipeline_stage, status, version')
       .eq('id', leadId)
       .eq('organization_id', profile.default_organization_id)
       .single()
@@ -95,9 +109,16 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
       return { error: 'Conflict: This lead was modified by someone else. Please refresh.' }
     }
 
+    const newStatus = STAGE_TO_STATUS[newStage]
+    const updateFields: Record<string, unknown> = {
+      pipeline_stage: newStage,
+      version: currentVersion + 1,
+    }
+    if (newStatus) updateFields.status = newStatus
+
     const { error } = await service
       .from('leads')
-      .update({ pipeline_stage: newStage, version: currentVersion + 1 })
+      .update(updateFields)
       .eq('id', leadId)
       .eq('version', currentVersion)
 
@@ -109,12 +130,50 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
       entity_type: 'lead',
       entity_id: leadId,
       action: 'updated',
-      before_json: { pipeline_stage: lead.pipeline_stage },
-      after_json: { pipeline_stage: newStage },
+      before_json: { pipeline_stage: lead.pipeline_stage, status: lead.status },
+      after_json: { pipeline_stage: newStage, ...(newStatus ? { status: newStatus } : {}) },
     })
 
     return { success: true, newVersion: currentVersion + 1 }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
   }
+}
+
+export async function syncLeadStatuses() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { error: 'No active organization' }
+
+  const { data: leads } = await service
+    .from('leads')
+    .select('id, pipeline_stage, status')
+    .eq('organization_id', profile.default_organization_id)
+    .is('deleted_at', null)
+
+  if (!leads?.length) return { updated: 0 }
+
+  let updated = 0
+  for (const lead of leads) {
+    const expectedStatus = STAGE_TO_STATUS[lead.pipeline_stage]
+    if (expectedStatus && lead.status !== expectedStatus) {
+      await service
+        .from('leads')
+        .update({ status: expectedStatus })
+        .eq('id', lead.id)
+      updated++
+    }
+  }
+
+  return { updated }
 }
