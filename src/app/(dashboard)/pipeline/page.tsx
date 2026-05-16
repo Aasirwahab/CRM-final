@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +13,10 @@ import {
 import { getPipelineLeads, moveLeadStage, syncLeadStatuses, type PipelineLead } from './actions'
 import { StageColumn } from './stage-column'
 import { LeadCard } from './lead-card'
+import { DollarSign } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+const DEAL_STAGES = ['proposal_sent', 'negotiation']
 
 const STAGES = [
   { id: 'imported', label: 'Imported' },
@@ -33,6 +37,16 @@ export default function PipelinePage() {
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [conflict, setConflict] = useState<string | null>(null)
+  const [dealModal, setDealModal] = useState<{
+    leadId: string
+    newStage: string
+    oldStage: string
+    oldVersion: number
+    companyName: string
+  } | null>(null)
+  const [dealValue, setDealValue] = useState('')
+  const [dealCloseDate, setDealCloseDate] = useState('')
+  const [dealSaving, setDealSaving] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -63,23 +77,57 @@ export default function PipelinePage() {
     const lead = leads.find(l => l.id === leadId)
     if (!lead || lead.pipeline_stage === newStage) return
 
-    // Optimistic update
-    const oldStage = lead.pipeline_stage
-    const oldVersion = lead.version
+    if (DEAL_STAGES.includes(newStage) && !DEAL_STAGES.includes(lead.pipeline_stage)) {
+      setDealModal({
+        leadId,
+        newStage,
+        oldStage: lead.pipeline_stage,
+        oldVersion: lead.version,
+        companyName: lead.company_name ?? 'Untitled',
+      })
+      setDealValue('')
+      setDealCloseDate('')
+      return
+    }
+
+    await executeMoveStage(leadId, newStage, lead.pipeline_stage, lead.version)
+  }
+
+  async function executeMoveStage(leadId: string, newStage: string, oldStage: string, oldVersion: number, dealDetails?: { value?: number; closeDate?: string }) {
     setLeads(prev => prev.map(l =>
       l.id === leadId ? { ...l, pipeline_stage: newStage, version: l.version + 1 } : l
     ))
 
-    const result = await moveLeadStage(leadId, newStage, oldVersion)
+    const result = await moveLeadStage(leadId, newStage, oldVersion, dealDetails)
 
     if ('error' in result && result.error) {
-      // Revert
       setLeads(prev => prev.map(l =>
         l.id === leadId ? { ...l, pipeline_stage: oldStage, version: oldVersion } : l
       ))
       setConflict(result.error)
       setTimeout(() => setConflict(null), 4000)
     }
+  }
+
+  async function handleDealConfirm() {
+    if (!dealModal) return
+    setDealSaving(true)
+    await executeMoveStage(
+      dealModal.leadId,
+      dealModal.newStage,
+      dealModal.oldStage,
+      dealModal.oldVersion,
+      {
+        value: dealValue ? parseFloat(dealValue) : undefined,
+        closeDate: dealCloseDate || undefined,
+      }
+    )
+    setDealSaving(false)
+    setDealModal(null)
+  }
+
+  function handleDealCancel() {
+    setDealModal(null)
   }
 
   const activeLead = leads.find(l => l.id === activeId)
@@ -123,6 +171,63 @@ export default function PipelinePage() {
           {activeLead ? <LeadCard lead={activeLead} isDragging /> : null}
         </DragOverlay>
       </DndContext>
+
+      {dealModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleDealCancel}>
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold">Create Deal</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Moving <strong>{dealModal.companyName}</strong> to{' '}
+              <strong>{STAGES.find(s => s.id === dealModal.newStage)?.label}</strong>.
+              Fill in the deal details.
+            </p>
+
+            <div className="mt-5 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Title</label>
+                <input
+                  type="text"
+                  value={`${dealModal.companyName} — Deal`}
+                  disabled
+                  className="h-9 w-full rounded-lg border bg-muted px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Value ($)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <input
+                    type="number"
+                    placeholder="e.g. 50000"
+                    value={dealValue}
+                    onChange={e => setDealValue(e.target.value)}
+                    className="h-9 w-full rounded-lg border bg-background pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Expected Close Date</label>
+                <input
+                  type="date"
+                  value={dealCloseDate}
+                  onChange={e => setDealCloseDate(e.target.value)}
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={handleDealCancel} disabled={dealSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleDealConfirm} disabled={dealSaving}>
+                {dealSaving ? 'Creating...' : 'Create Deal & Move'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

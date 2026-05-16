@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { getDeals, createDeal, type DealRow } from './actions'
-import { Plus, DollarSign } from 'lucide-react'
+import { getDeals, createDeal, updateDeal, deleteDeal, type DealRow } from './actions'
+import { Plus, DollarSign, Pencil, Trash2, X } from 'lucide-react'
 
 const STAGE_LABELS: Record<string, string> = {
   imported: 'Imported', researched: 'Researched', qualified: 'Qualified',
@@ -28,6 +28,16 @@ export default function DealsPage() {
   const [newClose, setNewClose] = useState('')
   const [saving, setSaving] = useState(false)
 
+  const [editDeal, setEditDeal] = useState<DealRow | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editValue, setEditValue] = useState('')
+  const [editStatus, setEditStatus] = useState('')
+  const [editClose, setEditClose] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
+  const [deleteConfirm, setDeleteConfirm] = useState<DealRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   async function load() {
     setLoading(true)
     const result = await getDeals({ status: filter || undefined })
@@ -50,6 +60,37 @@ export default function DealsPage() {
     setNewClose('')
     setShowForm(false)
     setSaving(false)
+    await load()
+  }
+
+  function openEdit(deal: DealRow) {
+    setEditDeal(deal)
+    setEditTitle(deal.title)
+    setEditValue(deal.value != null ? String(deal.value) : '')
+    setEditStatus(deal.status)
+    setEditClose(deal.expected_close_date ?? '')
+  }
+
+  async function handleEdit() {
+    if (!editDeal || !editTitle.trim()) return
+    setEditSaving(true)
+    await updateDeal(editDeal.id, {
+      title: editTitle.trim(),
+      value: editValue ? parseFloat(editValue) : null,
+      status: editStatus,
+      expected_close_date: editClose || null,
+    })
+    setEditSaving(false)
+    setEditDeal(null)
+    await load()
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) return
+    setDeleting(true)
+    await deleteDeal(deleteConfirm.id)
+    setDeleting(false)
+    setDeleteConfirm(null)
     await load()
   }
 
@@ -144,6 +185,7 @@ export default function DealsPage() {
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">Value</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground">Status</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground">Close Date</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -177,10 +219,118 @@ export default function DealsPage() {
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : '—'}
                   </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openEdit(deal)}
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        title="Edit deal"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(deal)}
+                        className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        title="Delete deal"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editDeal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setEditDeal(null)}>
+          <div className="w-full max-w-md rounded-xl border bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Edit Deal</h2>
+              <button onClick={() => setEditDeal(null)} className="rounded-md p-1 hover:bg-muted">
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Value ($)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <input
+                    type="number"
+                    placeholder="e.g. 50000"
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    className="h-9 w-full rounded-lg border bg-background pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+                <select
+                  value={editStatus}
+                  onChange={e => setEditStatus(e.target.value)}
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                >
+                  <option value="open">Open</option>
+                  <option value="won">Won</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Expected Close Date</label>
+                <input
+                  type="date"
+                  value={editClose}
+                  onChange={e => setEditClose(e.target.value)}
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditDeal(null)} disabled={editSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleEdit} disabled={!editTitle.trim() || editSaving}>
+                {editSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteConfirm(null)}>
+          <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold">Delete Deal</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to delete <strong>{deleteConfirm.title}</strong>? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -71,7 +71,7 @@ const STAGE_TO_STATUS: Record<string, string> = {
   nurture: 'nurture',
 }
 
-export async function moveLeadStage(leadId: string, newStage: string, currentVersion: number) {
+export async function moveLeadStage(leadId: string, newStage: string, currentVersion: number, dealDetails?: { value?: number; closeDate?: string }) {
   const idCheck = validate(uuidSchema, leadId)
   if (idCheck.error) return { error: 'Invalid lead ID' }
 
@@ -98,7 +98,7 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
   try {
     const { data: lead } = await service
       .from('leads')
-      .select('pipeline_stage, status, version')
+      .select('pipeline_stage, status, version, companies(name)')
       .eq('id', leadId)
       .eq('organization_id', profile.default_organization_id)
       .single()
@@ -133,6 +133,31 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
       before_json: { pipeline_stage: lead.pipeline_stage, status: lead.status },
       after_json: { pipeline_stage: newStage, ...(newStatus ? { status: newStatus } : {}) },
     })
+
+    const AUTO_DEAL_STAGES = ['proposal_sent', 'negotiation']
+    if (AUTO_DEAL_STAGES.includes(newStage) && !AUTO_DEAL_STAGES.includes(lead.pipeline_stage)) {
+      const { data: existingDeal } = await service
+        .from('deals')
+        .select('id')
+        .eq('lead_id', leadId)
+        .eq('organization_id', profile.default_organization_id)
+        .is('deleted_at', null)
+        .maybeSingle()
+
+      if (!existingDeal) {
+        const companyName = (lead as any).companies?.name ?? 'Untitled'
+        await service.from('deals').insert({
+          organization_id: profile.default_organization_id,
+          lead_id: leadId,
+          title: `${companyName} — Deal`,
+          stage: newStage,
+          value: dealDetails?.value ?? null,
+          expected_close_date: dealDetails?.closeDate ?? null,
+          owner_id: profile.id,
+          created_by: profile.id,
+        })
+      }
+    }
 
     return { success: true, newVersion: currentVersion + 1 }
   } catch {

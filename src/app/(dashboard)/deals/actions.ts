@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { RATE_LIMITS } from '@/lib/rate-limit'
-import { validate, createDealSchema } from '@/lib/validate'
+import { validate, createDealSchema, uuidSchema } from '@/lib/validate'
 
 export type DealRow = {
   id: string
@@ -106,6 +106,108 @@ export async function createDeal(data: {
       })
 
     if (error) return { error: 'Failed to create deal' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function updateDeal(dealId: string, data: {
+  title?: string
+  value?: number | null
+  status?: string
+  expected_close_date?: string | null
+}) {
+  const idCheck = validate(uuidSchema, dealId)
+  if (idCheck.error) return { error: 'Invalid deal ID' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { error: 'No active organization' }
+
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
+  try {
+    const updateFields: Record<string, unknown> = {}
+    if (data.title !== undefined) updateFields.title = data.title
+    if (data.value !== undefined) updateFields.value = data.value
+    if (data.status !== undefined) {
+      updateFields.status = data.status
+      if (data.status === 'won') updateFields.won_at = new Date().toISOString()
+    }
+    if (data.expected_close_date !== undefined) updateFields.expected_close_date = data.expected_close_date
+
+    const { error } = await service
+      .from('deals')
+      .update(updateFields)
+      .eq('id', dealId)
+      .eq('organization_id', profile.default_organization_id)
+
+    if (error) return { error: 'Failed to update deal' }
+    return { success: true }
+  } catch {
+    return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+export async function deleteDeal(dealId: string) {
+  const idCheck = validate(uuidSchema, dealId)
+  if (idCheck.error) return { error: 'Invalid deal ID' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/sign-in')
+
+  const service = createServiceClient()
+
+  const { data: profile } = await service
+    .from('profiles')
+    .select('id, default_organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.default_organization_id) return { error: 'No active organization' }
+
+  const rl = await RATE_LIMITS.write(user.id)
+  if (!rl.success) return { error: `Too many requests. Try again in ${rl.resetIn}s.` }
+
+  try {
+    const { data: deal } = await service
+      .from('deals')
+      .select('id, lead_id')
+      .eq('id', dealId)
+      .eq('organization_id', profile.default_organization_id)
+      .single()
+
+    if (!deal) return { error: 'Deal not found' }
+
+    const { error } = await service
+      .from('deals')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', dealId)
+      .eq('organization_id', profile.default_organization_id)
+
+    if (error) return { error: 'Failed to delete deal' }
+
+    if (deal.lead_id) {
+      await service
+        .from('leads')
+        .update({ pipeline_stage: 'qualified', status: 'qualified' })
+        .eq('id', deal.lead_id)
+        .eq('organization_id', profile.default_organization_id)
+    }
+
     return { success: true }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
