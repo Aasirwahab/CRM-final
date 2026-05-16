@@ -159,6 +159,24 @@ export async function moveLeadStage(leadId: string, newStage: string, currentVer
       }
     }
 
+    // Sync deal status and stage when lead moves in pipeline
+    const DEAL_STATUS_MAP: Record<string, string> = { won: 'won', lost: 'lost' }
+    const dealStatus = DEAL_STATUS_MAP[newStage]
+    const dealUpdateFields: Record<string, unknown> = { stage: newStage }
+    if (dealStatus) {
+      dealUpdateFields.status = dealStatus
+      if (dealStatus === 'won') dealUpdateFields.won_at = new Date().toISOString()
+    } else if (['proposal_sent', 'negotiation'].includes(newStage)) {
+      dealUpdateFields.status = 'open'
+    }
+
+    await service
+      .from('deals')
+      .update(dealUpdateFields)
+      .eq('lead_id', leadId)
+      .eq('organization_id', profile.default_organization_id)
+      .is('deleted_at', null)
+
     return { success: true, newVersion: currentVersion + 1 }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
