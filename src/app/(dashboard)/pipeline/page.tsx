@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -10,7 +10,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { getPipelineLeads, moveLeadStage, syncLeadStatuses, type PipelineLead } from './actions'
+import { getPipelineLeads, moveLeadStage, type PipelineLead } from './actions'
 import { StageColumn } from './stage-column'
 import { LeadCard } from './lead-card'
 import { DollarSign } from 'lucide-react'
@@ -54,7 +54,6 @@ export default function PipelinePage() {
 
   useEffect(() => {
     async function load() {
-      await syncLeadStatuses()
       const result = await getPipelineLeads()
       setLeads(result.leads)
       setLoading(false)
@@ -184,8 +183,9 @@ export default function PipelinePage() {
 
             <div className="mt-5 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Title</label>
+                <label htmlFor="deal-title" className="mb-1 block text-xs font-medium text-muted-foreground">Deal Title</label>
                 <input
+                  id="deal-title"
                   type="text"
                   value={`${dealModal.companyName} — Deal`}
                   disabled
@@ -193,10 +193,11 @@ export default function PipelinePage() {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Deal Value ($)</label>
+                <label htmlFor="deal-value" className="mb-1 block text-xs font-medium text-muted-foreground">Deal Value ($)</label>
                 <div className="relative">
                   <DollarSign className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
                   <input
+                    id="deal-value"
                     type="number"
                     placeholder="e.g. 50000"
                     value={dealValue}
@@ -207,8 +208,9 @@ export default function PipelinePage() {
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Expected Close Date</label>
+                <label htmlFor="deal-close-date" className="mb-1 block text-xs font-medium text-muted-foreground">Expected Close Date</label>
                 <input
+                  id="deal-close-date"
                   type="date"
                   value={dealCloseDate}
                   onChange={e => setDealCloseDate(e.target.value)}

@@ -131,7 +131,7 @@ describe('leadQualitySchema', () => {
 
 describe('pipelineStageSchema', () => {
   it('accepts valid stage', () => {
-    expect(validate(pipelineStageSchema, 'enriched').data).toBe('enriched')
+    expect(validate(pipelineStageSchema, 'researched').data).toBe('researched')
   })
 
   it('rejects invalid stage', () => {
