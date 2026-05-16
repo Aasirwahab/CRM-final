@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Sparkles, Mail, ArrowRight } from 'lucide-react'
+import { Sparkles, ArrowRight } from 'lucide-react'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
 
   const supabase = createClient()
 
@@ -28,51 +27,6 @@ export default function SignInPage() {
     }
 
     window.location.href = '/dashboard'
-  }
-
-  async function handleMagicLink() {
-    setError(null)
-    if (!email) {
-      setError('Enter your email first')
-      return
-    }
-    setLoading(true)
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    })
-
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
-    setMagicLinkSent(true)
-    setLoading(false)
-  }
-
-  if (magicLinkSent) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-lg">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-            <Mail className="size-5 text-primary" />
-          </div>
-          <h1 className="text-xl font-bold">Check your email</h1>
-          <p className="text-sm text-muted-foreground">
-            We sent a magic link to <strong className="text-foreground">{email}</strong>. Click the link to sign in.
-          </p>
-          <button
-            onClick={() => setMagicLinkSent(false)}
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Back to sign in
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -167,24 +121,6 @@ export default function SignInPage() {
               {!loading && <ArrowRight className="size-4" />}
             </button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleMagicLink}
-            disabled={loading}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border bg-card px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-          >
-            <Mail className="size-4" />
-            Send magic link
-          </button>
 
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
