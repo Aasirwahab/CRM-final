@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Sparkles, Mail, ArrowRight } from 'lucide-react'
+import { Sparkles, Mail, ArrowRight, ArrowLeft } from 'lucide-react'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
@@ -11,16 +11,50 @@ export default function SignUpPage() {
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [confirmSent, setConfirmSent] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   const supabase = createClient()
+
+  function handleOtpChange(index: number, value: string) {
+    if (value.length > 1) value = value[value.length - 1]
+    if (value && !/^\d$/.test(value)) return
+
+    const newOtp = [...otp]
+    newOtp[index] = value
+    setOtp(newOtp)
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  function handleOtpPaste(e: React.ClipboardEvent) {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (!pasted) return
+    const newOtp = [...otp]
+    for (let i = 0; i < 6; i++) {
+      newOtp[i] = pasted[i] || ''
+    }
+    setOtp(newOtp)
+    const focusIndex = Math.min(pasted.length, 5)
+    inputRefs.current[focusIndex]?.focus()
+  }
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
-    if (password.length < 12) {
-      setError('Password must be at least 12 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -31,7 +65,6 @@ export default function SignUpPage() {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -41,22 +74,114 @@ export default function SignUpPage() {
       return
     }
 
-    setConfirmSent(true)
+    setOtpSent(true)
     setLoading(false)
   }
 
-  if (confirmSent) {
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    const otpCode = otp.join('')
+    if (otpCode.length !== 6) {
+      setError('Please enter the 6-digit code')
+      return
+    }
+
+    setLoading(true)
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: 'signup',
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    window.location.href = '/dashboard'
+  }
+
+  async function handleResendOtp() {
+    setError(null)
+    setLoading(true)
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    })
+
+    if (error) {
+      setError(error.message)
+    }
+    setLoading(false)
+  }
+
+  if (otpSent) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-lg">
+        <div className="w-full max-w-sm space-y-6 rounded-2xl border bg-card p-8 shadow-lg">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <Mail className="size-5 text-primary" />
           </div>
-          <h1 className="text-xl font-bold">Check your email</h1>
-          <p className="text-sm text-muted-foreground">
-            We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
-            Click it to activate your account.
-          </p>
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold">Verify your email</h1>
+            <p className="text-sm text-muted-foreground">
+              Enter the 6-digit code sent to <strong className="text-foreground">{email}</strong>
+            </p>
+          </div>
+
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+              {otp.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  aria-label={`Digit ${i + 1} of 6`}
+                  className="h-12 w-12 rounded-lg border bg-background text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring/30"
+                />
+              ))}
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? 'Verifying...' : 'Verify email'}
+            </button>
+          </form>
+
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => { setOtpSent(false); setOtp(['', '', '', '', '', '']); setError(null) }}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <ArrowLeft className="size-3.5" />
+              Back
+            </button>
+            <button
+              onClick={handleResendOtp}
+              disabled={loading}
+              className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+            >
+              Resend code
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -142,9 +267,9 @@ export default function SignUpPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 12 characters"
+                placeholder="Min 8 characters"
                 required
-                minLength={12}
+                minLength={8}
                 className="flex h-10 w-full rounded-lg border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
               />
             </div>
