@@ -1,6 +1,12 @@
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
-const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google-calendar/callback`
+
+function getAppUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  return raw.split(',')[0].trim()
+}
+
+const REDIRECT_URI = `${getAppUrl()}/api/auth/google-calendar/callback`
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',

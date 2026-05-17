@@ -58,6 +58,7 @@ export default function BookingPage() {
     if (!formData.email.trim()) errors.email = 'Email is required'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Invalid email'
     if (!formData.company.trim()) errors.company = 'Company is required'
+    else if (/^https?:\/\//i.test(formData.company.trim())) errors.company = 'Please enter a company name, not a URL'
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }

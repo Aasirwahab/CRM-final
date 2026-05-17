@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.redirect(new URL('/sign-in', process.env.NEXT_PUBLIC_APP_URL!))
+    return NextResponse.redirect(new URL('/sign-in', (process.env.NEXT_PUBLIC_APP_URL ?? '').split(',')[0].trim()))
   }
 
   const state = Buffer.from(JSON.stringify({ userId: user.id })).toString('base64url')

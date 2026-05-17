@@ -26,7 +26,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
             <li><strong>Manage pipeline</strong> — Drag leads through your sales stages</li>
             <li><strong>Close deals</strong> — Track deals and convert to projects</li>
           </ol>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard"
+          <a href="${(process.env.NEXT_PUBLIC_APP_URL ?? '').split(',')[0].trim()}/dashboard"
              style="display: inline-block; margin-top: 16px; padding: 12px 24px; background: #111; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
             Go to Dashboard
           </a>
@@ -82,7 +82,7 @@ export async function sendImportCompleteEmail(
             </tr>` : ''}
           </table>
 
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/leads"
+          <a href="${(process.env.NEXT_PUBLIC_APP_URL ?? '').split(',')[0].trim()}/leads"
              style="display: inline-block; margin-top: 8px; padding: 12px 24px; background: #111; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
             View Leads
           </a>
@@ -142,7 +142,7 @@ export async function sendTaskReminderEmail(
             <tbody>${taskRows}</tbody>
           </table>
 
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/tasks"
+          <a href="${(process.env.NEXT_PUBLIC_APP_URL ?? '').split(',')[0].trim()}/tasks"
              style="display: inline-block; margin-top: 8px; padding: 12px 24px; background: #111; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
             View Tasks
           </a>
@@ -155,6 +155,80 @@ export async function sendTaskReminderEmail(
     return { success: true }
   } catch (err: any) {
     console.error('Task reminder email failed:', err.message)
+    return { error: err.message }
+  }
+}
+
+export async function sendBookingNotificationEmail(
+  to: string,
+  organizerName: string,
+  booking: {
+    guestName: string
+    guestEmail: string
+    company: string
+    phone?: string | null
+    notes?: string | null
+    meetingTime: string
+    meetLink?: string
+    orgName: string
+  }
+) {
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `New booking: ${booking.guestName} from ${booking.company}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+          <h1 style="font-size: 24px; font-weight: 700; color: #111;">New Meeting Booked</h1>
+          <p style="font-size: 15px; color: #555; line-height: 1.6;">
+            Hi ${escapeHtml(organizerName)}, someone just booked a meeting with you through your ${escapeHtml(booking.orgName)} booking page.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999; width: 100px;">Name</td>
+              <td style="padding: 10px 0; font-size: 14px; font-weight: 600;">${escapeHtml(booking.guestName)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999;">Email</td>
+              <td style="padding: 10px 0; font-size: 14px;">${escapeHtml(booking.guestEmail)}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999;">Company</td>
+              <td style="padding: 10px 0; font-size: 14px;">${escapeHtml(booking.company)}</td>
+            </tr>
+            ${booking.phone ? `
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999;">Phone</td>
+              <td style="padding: 10px 0; font-size: 14px;">${escapeHtml(booking.phone)}</td>
+            </tr>` : ''}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999;">When</td>
+              <td style="padding: 10px 0; font-size: 14px; font-weight: 600;">${escapeHtml(booking.meetingTime)}</td>
+            </tr>
+            ${booking.notes ? `
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px 0; font-size: 14px; color: #999;">Notes</td>
+              <td style="padding: 10px 0; font-size: 14px;">${escapeHtml(booking.notes)}</td>
+            </tr>` : ''}
+          </table>
+
+          ${booking.meetLink ? `
+          <a href="${booking.meetLink}"
+             style="display: inline-block; margin-top: 8px; padding: 12px 24px; background: #111; color: #fff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 600;">
+            Join Google Meet
+          </a>` : ''}
+
+          <p style="font-size: 13px; color: #999; margin-top: 32px;">
+            — LeadFlow CRM
+          </p>
+        </div>
+      `,
+    })
+    return { success: true }
+  } catch (err: any) {
+    console.error('Booking notification email failed:', err.message)
     return { error: err.message }
   }
 }

@@ -54,7 +54,7 @@ export async function getBookingSettings(): Promise<BookingSettingsData | { erro
     .eq('organization_id', profile.default_organization_id)
     .maybeSingle()
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').split(',')[0].trim()
 
   return {
     isEnabled: settings?.is_enabled ?? false,

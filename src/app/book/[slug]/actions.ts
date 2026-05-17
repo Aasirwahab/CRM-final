@@ -6,6 +6,7 @@ import {
   getValidAccessToken,
   createCalendarEvent,
 } from '@/lib/google-calendar'
+import { sendBookingNotificationEmail } from '@/lib/email'
 
 export type BookingConfig = {
   orgId: string
@@ -72,6 +73,17 @@ export type TimeSlot = {
   display: string
 }
 
+function toTzISOString(date: string, hour: number, min: number, timezone: string): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const dtStr = `${date}T${pad(hour)}:${pad(min)}:00`
+  const utcGuess = new Date(dtStr + 'Z')
+  const inTz = new Date(utcGuess.toLocaleString('en-US', { timeZone: timezone }))
+  const offsetMs = inTz.getTime() - utcGuess.getTime()
+  const local = new Date(`${dtStr}Z`)
+  local.setTime(local.getTime() - offsetMs)
+  return local.toISOString()
+}
+
 export async function getAvailableSlots(
   orgId: string,
   date: string
@@ -102,13 +114,14 @@ export async function getAvailableSlots(
       .eq('id', tokenRow.id)
   })
 
-  const dayStart = new Date(`${date}T00:00:00`)
-  const dayEnd = new Date(`${date}T23:59:59`)
+  const tz = settings.timezone
+  const dayStartISO = toTzISOString(date, 0, 0, tz)
+  const dayEndISO = toTzISOString(date, 23, 59, tz)
   const busySlots = await getFreeBusySlots(
     accessToken,
     tokenRow.calendar_email!,
-    dayStart.toISOString(),
-    dayEnd.toISOString()
+    dayStartISO,
+    dayEndISO
   )
 
   const duration = settings.meeting_duration
@@ -118,28 +131,33 @@ export async function getAvailableSlots(
 
   for (let hour = settings.start_hour; hour < settings.end_hour; hour++) {
     for (let min = 0; min < 60; min += duration + buffer) {
-      const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`)
-      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000)
+      const slotStartISO = toTzISOString(date, hour, min, tz)
+      const slotStartDate = new Date(slotStartISO)
+      const slotEndDate = new Date(slotStartDate.getTime() + duration * 60 * 1000)
 
-      if (slotEnd.getHours() > settings.end_hour) continue
-      if (slotEnd.getHours() === settings.end_hour && slotEnd.getMinutes() > 0) continue
-      if (slotStart <= now) continue
+      const endHourInTz = Number(slotEndDate.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }))
+      const endMinInTz = Number(slotEndDate.toLocaleString('en-US', { timeZone: tz, minute: 'numeric' }))
+      if (endHourInTz > settings.end_hour) continue
+      if (endHourInTz === settings.end_hour && endMinInTz > 0) continue
+      if (slotStartDate <= now) continue
 
       const isBusy = busySlots.some(busy => {
         const busyStart = new Date(busy.start)
         const busyEnd = new Date(busy.end)
-        return slotStart < busyEnd && slotEnd > busyStart
+        return slotStartDate < busyEnd && slotEndDate > busyStart
       })
 
       if (!isBusy) {
+        const displayTime = slotStartDate.toLocaleString('en-US', {
+          timeZone: tz,
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        })
         slots.push({
-          start: slotStart.toISOString(),
-          end: slotEnd.toISOString(),
-          display: slotStart.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-          }),
+          start: slotStartISO,
+          end: slotEndDate.toISOString(),
+          display: displayTime,
         })
       }
     }
@@ -307,6 +325,43 @@ export async function submitBooking(
           meeting_time: formData.slotStart,
         },
       })
+    }
+
+    let organizerEmail: string | null = tokenRow.calendar_email ?? null
+    let organizerName = 'there'
+    if (settings.owner_profile_id) {
+      const { data: ownerProfile } = await service
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', settings.owner_profile_id)
+        .single()
+      if (ownerProfile?.full_name) organizerName = ownerProfile.full_name
+      if (ownerProfile?.email) organizerEmail = ownerProfile.email
+    }
+
+    if (organizerEmail) {
+      const meetingDate = new Date(formData.slotStart)
+      const meetingTime = meetingDate.toLocaleString('en-US', {
+        timeZone: settings.timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+
+      sendBookingNotificationEmail(organizerEmail, organizerName, {
+        guestName: formData.name,
+        guestEmail: formData.email,
+        company: formData.company,
+        phone: formData.phone,
+        notes: formData.notes,
+        meetingTime,
+        meetLink: eventResult.meetLink,
+        orgName: org?.name ?? '',
+      }).catch(err => console.error('Booking notification email error:', err))
     }
 
     return { success: true, meetLink: eventResult.meetLink }

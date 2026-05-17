@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
   const error = url.searchParams.get('error')
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL!
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').split(',')[0].trim()
 
   if (error || !code || !state) {
     return NextResponse.redirect(new URL('/settings?gcal=error', appUrl))
