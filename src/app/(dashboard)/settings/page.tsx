@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { getOrgSettings, updateOrgName, updateProfile } from './actions'
 import Link from 'next/link'
 import { User, Building2, Users, ChevronRight, FileText, Shield, Trash2, ScrollText } from 'lucide-react'
+import { BookingSettings } from './booking-settings'
 
 const ROLE_STYLES: Record<string, string> = {
   owner: 'bg-purple-50 text-purple-600 ring-purple-500/20 dark:bg-purple-950/40 dark:text-purple-400',
@@ -23,12 +25,23 @@ const LINKS = [
 ]
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [orgName, setOrgName] = useState('')
   const [profileName, setProfileName] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    const gcal = searchParams.get('gcal')
+    if (gcal === 'connected') {
+      setSuccess('Google Calendar connected successfully!')
+      setTimeout(() => setSuccess(null), 4000)
+    } else if (gcal === 'error') {
+      setSuccess(null)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     async function load() {
@@ -88,9 +101,10 @@ export default function SettingsPage() {
           <h2 className="text-base font-semibold">Profile</h2>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+          <label htmlFor="profile-name" className="text-sm font-medium text-muted-foreground">Full Name</label>
           <div className="flex gap-3">
             <input
+              id="profile-name"
               type="text"
               value={profileName}
               onChange={e => setProfileName(e.target.value)}
@@ -119,9 +133,10 @@ export default function SettingsPage() {
           )}
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">Organization Name</label>
+          <label htmlFor="org-name" className="text-sm font-medium text-muted-foreground">Organization Name</label>
           <div className="flex gap-3">
             <input
+              id="org-name"
               type="text"
               value={orgName}
               onChange={e => setOrgName(e.target.value)}
@@ -143,6 +158,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Booking Page */}
+      <BookingSettings />
 
       {/* Team Members */}
       <div className="rounded-xl border bg-card p-6 space-y-4">
