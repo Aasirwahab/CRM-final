@@ -1,105 +1,210 @@
 import Link from 'next/link'
+import {
+  FileText, Info, UserPlus, ShieldAlert, Database, Brain, Link2,
+  Server, CreditCard, LogOut, Scale, Bell, Mail,
+} from 'lucide-react'
 
 export const metadata = {
   title: 'Terms of Service — LeadFlow CRM',
 }
 
+function Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/50 p-6 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-4.5 w-4.5 text-primary" />
+        </div>
+        <h2 className="text-lg font-semibold m-0">{title}</h2>
+      </div>
+      <div className="text-sm text-muted-foreground leading-relaxed space-y-3">{children}</div>
+    </div>
+  )
+}
+
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 prose prose-neutral dark:prose-invert">
-      <Link href="/" className="text-sm text-muted-foreground no-underline hover:text-foreground">
-        &larr; Home
-      </Link>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground no-underline hover:text-foreground transition-colors"
+        >
+          &larr; Back to Home
+        </Link>
 
-      <h1 className="mt-4">Terms of Service</h1>
-      <p className="text-sm text-muted-foreground">Last updated: May 12, 2026</p>
+        <div className="mt-8 mb-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
+            <FileText className="h-3.5 w-3.5" />
+            Terms of Service
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Terms of Service</h1>
+          <p className="mt-2 text-muted-foreground">
+            Last updated: May 12, 2026
+          </p>
+        </div>
 
-      <h2>1. Acceptance of Terms</h2>
-      <p>
-        By accessing or using LeadFlow CRM (&quot;the Service&quot;), you agree to be bound by these
-        Terms of Service. If you do not agree, do not use the Service.
-      </p>
+        <div className="space-y-4">
+          <Section icon={Info} title="Acceptance of Terms">
+            <p>
+              By accessing or using LeadFlow CRM (&quot;the Service&quot;), you agree to be bound by these
+              Terms of Service. If you do not agree, do not use the Service.
+            </p>
+          </Section>
 
-      <h2>2. Description of Service</h2>
-      <p>
-        LeadFlow CRM is a multi-tenant AI-powered sales CRM that provides lead management,
-        pipeline tracking, AI research, CSV import, task management, deal tracking, and
-        project management features.
-      </p>
+          <Section icon={Info} title="Description of Service">
+            <p>
+              LeadFlow CRM is a multi-tenant AI-powered sales CRM that provides lead management,
+              pipeline tracking, AI research, CSV import, task management, deal tracking,
+              project management, and booking page features with Google Calendar integration.
+            </p>
+          </Section>
 
-      <h2>3. Account Registration</h2>
-      <ul>
-        <li>You must provide accurate and complete registration information</li>
-        <li>You are responsible for maintaining the security of your account credentials</li>
-        <li>You must be at least 18 years old to use the Service</li>
-        <li>One person or organization may not maintain multiple free accounts</li>
-      </ul>
+          <Section icon={UserPlus} title="Account Registration">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'You must provide accurate and complete registration information',
+                'You are responsible for maintaining the security of your account credentials',
+                'You must be at least 18 years old to use the Service',
+                'One person or organization may not maintain multiple free accounts',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>4. Acceptable Use</h2>
-      <p>You agree not to:</p>
-      <ul>
-        <li>Use the Service for any illegal or unauthorized purpose</li>
-        <li>Upload malicious files, spam content, or data that violates others&apos; privacy</li>
-        <li>Attempt to bypass rate limits, security measures, or access controls</li>
-        <li>Reverse engineer, decompile, or disassemble the Service</li>
-        <li>Use the AI features to generate harmful, misleading, or abusive content</li>
-        <li>Scrape or bulk-extract data from the Service</li>
-      </ul>
+          <Section icon={ShieldAlert} title="Acceptable Use">
+            <p>You agree <strong className="text-foreground">not</strong> to:</p>
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'Use the Service for any illegal or unauthorized purpose',
+                'Upload malicious files, spam content, or data that violates others\' privacy',
+                'Attempt to bypass rate limits, security measures, or access controls',
+                'Reverse engineer, decompile, or disassemble the Service',
+                'Use the AI features to generate harmful, misleading, or abusive content',
+                'Scrape or bulk-extract data from the Service',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>5. Data Ownership</h2>
-      <p>
-        You retain ownership of all data you upload to the Service (leads, contacts, notes, files).
-        We do not claim ownership of your data. You grant us a limited license to process your
-        data solely for providing the Service.
-      </p>
+          <Section icon={Database} title="Data Ownership">
+            <p>
+              You <strong className="text-foreground">retain ownership</strong> of all data you upload
+              to the Service (leads, contacts, notes, files). We do not claim ownership of your data.
+              You grant us a limited license to process your data solely for providing the Service.
+            </p>
+          </Section>
 
-      <h2>6. AI Features</h2>
-      <ul>
-        <li>AI research results are generated by third-party AI models and may contain inaccuracies</li>
-        <li>AI features are subject to daily usage caps based on your plan</li>
-        <li>You are responsible for verifying AI-generated insights before acting on them</li>
-        <li>We are not liable for decisions made based on AI-generated content</li>
-      </ul>
+          <Section icon={Brain} title="AI Features">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'AI research results are generated by third-party models and may contain inaccuracies',
+                'AI features are subject to daily usage caps based on your plan',
+                'You are responsible for verifying AI-generated insights before acting on them',
+                'We are not liable for decisions made based on AI-generated content',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>7. Service Availability</h2>
-      <p>
-        We strive for high availability but do not guarantee uninterrupted service. We may
-        perform scheduled maintenance with advance notice. We are not liable for downtime
-        caused by factors beyond our control.
-      </p>
+          <Section icon={Link2} title="Third-Party Integrations">
+            <p>
+              The Service integrates with third-party services including Google Calendar. By connecting
+              your Google account, you authorize LeadFlow CRM to access your calendar availability and
+              create events on your behalf for the purpose of managing bookings.
+            </p>
+            <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs">
+              You may revoke this access at any time from Settings. Our use of Google user data
+              complies with the{' '}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Google API Services User Data Policy
+              </a>
+              . See our{' '}
+              <Link href="/privacy" className="text-primary underline">
+                Privacy Policy
+              </Link>{' '}
+              for full details.
+            </div>
+          </Section>
 
-      <h2>8. Payment & Plans</h2>
-      <p>
-        Free tier includes limited features and usage caps. Paid plans unlock additional
-        features and higher limits. Billing terms are specified at the time of purchase.
-        Refunds are handled on a case-by-case basis.
-      </p>
+          <Section icon={Server} title="Service Availability">
+            <p>
+              We strive for high availability but do not guarantee uninterrupted service. We may
+              perform scheduled maintenance with advance notice. We are not liable for downtime
+              caused by factors beyond our control.
+            </p>
+          </Section>
 
-      <h2>9. Termination</h2>
-      <p>
-        We may suspend or terminate your account if you violate these terms. You may delete
-        your account at any time from Settings. Upon termination, your data will be deleted
-        within 90 days.
-      </p>
+          <Section icon={CreditCard} title="Payment & Plans">
+            <p>
+              Free tier includes limited features and usage caps. Paid plans unlock additional
+              features and higher limits. Billing terms are specified at the time of purchase.
+              Refunds are handled on a case-by-case basis.
+            </p>
+          </Section>
 
-      <h2>10. Limitation of Liability</h2>
-      <p>
-        The Service is provided &quot;as is&quot; without warranties of any kind. We are not liable for
-        any indirect, incidental, or consequential damages arising from your use of the Service.
-        Our total liability is limited to the amount you paid us in the 12 months prior to the claim.
-      </p>
+          <Section icon={LogOut} title="Termination">
+            <p>
+              We may suspend or terminate your account if you violate these terms. You may delete
+              your account at any time from Settings. Upon termination, your data will be deleted
+              within 90 days.
+            </p>
+          </Section>
 
-      <h2>11. Changes to Terms</h2>
-      <p>
-        We may update these terms from time to time. Continued use of the Service after changes
-        constitutes acceptance of the new terms.
-      </p>
+          <Section icon={Scale} title="Limitation of Liability">
+            <p>
+              The Service is provided &quot;as is&quot; without warranties of any kind. We are not liable for
+              any indirect, incidental, or consequential damages arising from your use of the Service.
+              Our total liability is limited to the amount you paid us in the 12 months prior to the claim.
+            </p>
+          </Section>
 
-      <h2>12. Contact</h2>
-      <p>
-        For questions about these terms, contact us at{' '}
-        <a href="mailto:legal@leadflow.app">legal@leadflow.app</a>.
-      </p>
+          <Section icon={Bell} title="Changes to Terms">
+            <p>
+              We may update these terms from time to time. Continued use of the Service after changes
+              constitutes acceptance of the new terms.
+            </p>
+          </Section>
+
+          <Section icon={Mail} title="Contact">
+            <p>
+              For questions about these terms, contact us at{' '}
+              <a href="mailto:webvoxelstudio.uk@gmail.com" className="text-primary underline">
+                webvoxelstudio.uk@gmail.com
+              </a>
+            </p>
+          </Section>
+        </div>
+
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} LeadFlow CRM. All rights reserved.
+        </p>
+      </div>
     </div>
   )
 }

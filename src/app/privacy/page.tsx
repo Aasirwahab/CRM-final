@@ -1,88 +1,224 @@
 import Link from 'next/link'
+import { Shield, Database, Eye, Calendar, Brain, Share2, UserCheck, Cookie, Clock, Bell, Mail } from 'lucide-react'
 
 export const metadata = {
   title: 'Privacy Policy — LeadFlow CRM',
 }
 
+function Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: React.ElementType
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/50 p-6 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Icon className="h-4.5 w-4.5 text-primary" />
+        </div>
+        <h2 className="text-lg font-semibold m-0">{title}</h2>
+      </div>
+      <div className="text-sm text-muted-foreground leading-relaxed space-y-3">{children}</div>
+    </div>
+  )
+}
+
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16 prose prose-neutral dark:prose-invert">
-      <Link href="/" className="text-sm text-muted-foreground no-underline hover:text-foreground">
-        &larr; Home
-      </Link>
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground no-underline hover:text-foreground transition-colors"
+        >
+          &larr; Back to Home
+        </Link>
 
-      <h1 className="mt-4">Privacy Policy</h1>
-      <p className="text-sm text-muted-foreground">Last updated: May 12, 2026</p>
+        <div className="mt-8 mb-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
+            <Shield className="h-3.5 w-3.5" />
+            Privacy Policy
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">How we protect your data</h1>
+          <p className="mt-2 text-muted-foreground">
+            Last updated: May 12, 2026
+          </p>
+        </div>
 
-      <h2>1. Information We Collect</h2>
-      <p>
-        When you create an account, we collect your name, email address, and organization details.
-        When you use our CRM features, we process lead data, contact information, and business
-        records that you import or create within the platform.
-      </p>
+        <div className="space-y-4">
+          <Section icon={Database} title="Information We Collect">
+            <p>
+              When you create an account, we collect your <strong className="text-foreground">name, email address,
+              and organization details</strong>. When you use our CRM features, we process lead data, contact
+              information, and business records that you import or create within the platform.
+            </p>
+          </Section>
 
-      <h2>2. How We Use Your Information</h2>
-      <ul>
-        <li>To provide and maintain the LeadFlow CRM service</li>
-        <li>To process CSV imports, AI research, and lead scoring</li>
-        <li>To send transactional emails (welcome, import complete, task reminders)</li>
-        <li>To improve our service and fix bugs</li>
-        <li>To enforce our Terms of Service</li>
-      </ul>
+          <Section icon={Eye} title="How We Use Your Information">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'Provide and maintain the LeadFlow CRM service',
+                'Process CSV imports, AI research, and lead scoring',
+                'Send transactional emails (welcome, import complete, task reminders)',
+                'Manage booking pages and calendar integrations',
+                'Improve our service and fix bugs',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>3. AI Data Processing</h2>
-      <p>
-        When you use AI Research features, lead data (company name, website, contact info) is sent
-        to OpenAI for analysis. We do not use your data to train AI models. AI-generated insights
-        are stored in your organization&apos;s database and are not shared with other users.
-      </p>
+          <Section icon={Calendar} title="Google Calendar Integration">
+            <p>
+              When you connect your Google Calendar, we request access to view your calendar
+              availability and create events on your behalf:
+            </p>
+            <div className="rounded-lg border border-border/50 bg-background/50 p-4 space-y-3">
+              <div>
+                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Calendar Read Access</p>
+                <p className="m-0">Used solely to check your availability (free/busy status) so we can display open time slots on your public booking page.</p>
+              </div>
+              <div className="border-t border-border/50 pt-3">
+                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Calendar Event Creation</p>
+                <p className="m-0">Used solely to create a calendar event with a Google Meet link when a lead books a meeting through your booking page.</p>
+              </div>
+            </div>
+            <p>
+              We do <strong className="text-foreground">not</strong> read, store, share, or export any of your
+              existing calendar events. Your Google Calendar data is not used for advertising, analytics, or
+              any purpose other than booking.
+            </p>
+            <p>
+              You can disconnect Google Calendar at any time from Settings. We immediately stop accessing
+              your data and delete stored access tokens.
+            </p>
+            <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-xs">
+              LeadFlow CRM&apos;s use of information received from Google APIs adheres to the{' '}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements.
+            </div>
+          </Section>
 
-      <h2>4. Data Storage & Security</h2>
-      <p>
-        Your data is stored in Supabase (PostgreSQL) with Row Level Security ensuring strict
-        multi-tenant isolation. All data is encrypted in transit (TLS) and at rest. We use
-        security headers, rate limiting, and input validation to protect against common attacks.
-      </p>
+          <Section icon={Brain} title="AI Data Processing">
+            <p>
+              When you use AI Research features, lead data (company name, website, contact info) is sent
+              to OpenAI for analysis. We do <strong className="text-foreground">not</strong> use your data
+              to train AI models. AI-generated insights are stored in your organization&apos;s database
+              and are not shared with other users.
+            </p>
+          </Section>
 
-      <h2>5. Data Sharing</h2>
-      <p>
-        We do not sell your data. We share data only with service providers necessary to operate
-        the platform (Supabase for database, OpenAI for AI features, Resend for email delivery).
-        All providers are bound by data processing agreements.
-      </p>
+          <Section icon={Shield} title="Data Storage & Security">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'Stored in Supabase (PostgreSQL) with Row Level Security for strict multi-tenant isolation',
+                'Encrypted in transit (TLS) and at rest',
+                'Protected by security headers, rate limiting, and input validation',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>6. Your Rights</h2>
-      <ul>
-        <li><strong>Access:</strong> Export your data at any time from Settings</li>
-        <li><strong>Deletion:</strong> Request account deletion by contacting support</li>
-        <li><strong>Correction:</strong> Update your profile and organization data in Settings</li>
-        <li><strong>Portability:</strong> Export leads and contacts as CSV</li>
-      </ul>
+          <Section icon={Share2} title="Data Sharing">
+            <p>
+              We do <strong className="text-foreground">not sell your data</strong>. We share data only with
+              service providers necessary to operate the platform:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { name: 'Supabase', use: 'Database' },
+                { name: 'OpenAI', use: 'AI features' },
+                { name: 'Resend', use: 'Email delivery' },
+                { name: 'Google Calendar', use: 'Booking' },
+              ].map((provider) => (
+                <div key={provider.name} className="rounded-lg border border-border/50 bg-background/50 px-3 py-2">
+                  <p className="font-medium text-foreground text-sm m-0">{provider.name}</p>
+                  <p className="text-xs m-0">{provider.use}</p>
+                </div>
+              ))}
+            </div>
+          </Section>
 
-      <h2>7. Cookies</h2>
-      <p>
-        We use essential cookies only for authentication session management. We do not use
-        tracking cookies or third-party advertising cookies.
-      </p>
+          <Section icon={UserCheck} title="Your Rights">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                ['Access', 'Export your data at any time from Settings'],
+                ['Deletion', 'Request account deletion by contacting support'],
+                ['Correction', 'Update your profile and organization data in Settings'],
+                ['Portability', 'Export leads and contacts as CSV'],
+                ['Revoke access', 'Disconnect third-party integrations at any time'],
+              ].map(([label, desc]) => (
+                <li key={label} className="flex items-start gap-2">
+                  <span className="font-medium text-foreground shrink-0 w-24">{label}</span>
+                  <span>{desc}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>8. Data Retention</h2>
-      <p>
-        Active account data is retained as long as your account exists. Deleted leads are
-        soft-deleted and can be restored from Trash. Permanently deleted data is removed
-        within 30 days. Account data is deleted within 90 days of account closure.
-      </p>
+          <Section icon={Cookie} title="Cookies">
+            <p>
+              We use <strong className="text-foreground">essential cookies only</strong> for authentication
+              session management. No tracking cookies or third-party advertising cookies.
+            </p>
+          </Section>
 
-      <h2>9. Changes to This Policy</h2>
-      <p>
-        We may update this policy from time to time. We will notify you of significant changes
-        via email or in-app notification.
-      </p>
+          <Section icon={Clock} title="Data Retention">
+            <ul className="list-none p-0 m-0 space-y-2">
+              {[
+                'Active account data is retained as long as your account exists',
+                'Deleted leads can be restored from Trash',
+                'Permanently deleted data is removed within 30 days',
+                'Account data is deleted within 90 days of account closure',
+                'Google Calendar tokens are deleted immediately on disconnect',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-      <h2>10. Contact</h2>
-      <p>
-        For privacy-related questions, contact us at{' '}
-        <a href="mailto:privacy@leadflow.app">privacy@leadflow.app</a>.
-      </p>
+          <Section icon={Bell} title="Changes to This Policy">
+            <p>
+              We may update this policy from time to time. We will notify you of significant changes
+              via email or in-app notification.
+            </p>
+          </Section>
+
+          <Section icon={Mail} title="Contact">
+            <p>
+              For privacy-related questions, contact us at{' '}
+              <a href="mailto:webvoxelstudio.uk@gmail.com" className="text-primary underline">
+                webvoxelstudio.uk@gmail.com
+              </a>
+            </p>
+          </Section>
+        </div>
+
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} LeadFlow CRM. All rights reserved.
+        </p>
+      </div>
     </div>
   )
 }
