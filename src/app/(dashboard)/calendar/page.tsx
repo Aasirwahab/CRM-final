@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { getCalendarItems, type CalendarTask, type CalendarDeal } from './actions'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { getCalendarItems, type CalendarTask, type CalendarDeal, type CalendarMeeting } from './actions'
+import { ChevronLeft, ChevronRight, Video } from 'lucide-react'
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -21,6 +21,7 @@ const PRIORITY_DOT: Record<string, string> = {
 type DayItems = {
   tasks: CalendarTask[]
   deals: CalendarDeal[]
+  meetings: CalendarMeeting[]
 }
 
 export default function CalendarPage() {
@@ -29,6 +30,7 @@ export default function CalendarPage() {
   const [month, setMonth] = useState(today.getMonth())
   const [tasks, setTasks] = useState<CalendarTask[]>([])
   const [deals, setDeals] = useState<CalendarDeal[]>([])
+  const [meetings, setMeetings] = useState<CalendarMeeting[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
@@ -39,6 +41,7 @@ export default function CalendarPage() {
     const result = await getCalendarItems({ from, to })
     setTasks(result.tasks)
     setDeals(result.deals)
+    setMeetings(result.meetings)
     setLoading(false)
   }, [year, month])
 
@@ -72,13 +75,18 @@ export default function CalendarPage() {
   const itemsByDate: Record<string, DayItems> = {}
   for (const task of tasks) {
     const key = dateKey(task.due_at)
-    if (!itemsByDate[key]) itemsByDate[key] = { tasks: [], deals: [] }
+    if (!itemsByDate[key]) itemsByDate[key] = { tasks: [], deals: [], meetings: [] }
     itemsByDate[key].tasks.push(task)
   }
   for (const deal of deals) {
     const key = dateKey(deal.expected_close_date)
-    if (!itemsByDate[key]) itemsByDate[key] = { tasks: [], deals: [] }
+    if (!itemsByDate[key]) itemsByDate[key] = { tasks: [], deals: [], meetings: [] }
     itemsByDate[key].deals.push(deal)
+  }
+  for (const meeting of meetings) {
+    const key = dateKey(meeting.start_time)
+    if (!itemsByDate[key]) itemsByDate[key] = { tasks: [], deals: [], meetings: [] }
+    itemsByDate[key].meetings.push(meeting)
   }
 
   const selectedItems = selectedDate ? itemsByDate[selectedDate] : null
@@ -113,6 +121,9 @@ export default function CalendarPage() {
         <span className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" /> Deal
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-violet-500" /> Meeting
+        </span>
       </div>
 
       {loading ? (
@@ -146,6 +157,8 @@ export default function CalendarPage() {
                 const isSelected = key === selectedDate
                 const taskCount = items?.tasks.length ?? 0
                 const dealCount = items?.deals.length ?? 0
+                const meetingCount = items?.meetings.length ?? 0
+                const totalCount = taskCount + dealCount + meetingCount
 
                 return (
                   <div
@@ -161,8 +174,14 @@ export default function CalendarPage() {
                       {day}
                     </span>
 
-                    {(taskCount > 0 || dealCount > 0) && (
+                    {totalCount > 0 && (
                       <div className="mt-0.5 space-y-0.5">
+                        {items!.meetings.slice(0, 2).map(m => (
+                          <div key={m.id} className="flex items-center gap-1 truncate">
+                            <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
+                            <span className="truncate text-[10px] text-muted-foreground">{m.title}</span>
+                          </div>
+                        ))}
                         {items!.tasks.slice(0, 2).map(t => (
                           <div key={t.id} className="flex items-center gap-1 truncate">
                             <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${PRIORITY_DOT[t.priority] ?? 'bg-blue-500'}`} />
@@ -175,8 +194,8 @@ export default function CalendarPage() {
                             <span className="truncate text-[10px] text-muted-foreground">{d.title}</span>
                           </div>
                         ))}
-                        {taskCount + dealCount > 4 && (
-                          <span className="text-[10px] text-muted-foreground">+{taskCount + dealCount - 4} more</span>
+                        {totalCount > 4 && (
+                          <span className="text-[10px] text-muted-foreground">+{totalCount - 4} more</span>
                         )}
                       </div>
                     )}
@@ -195,10 +214,58 @@ export default function CalendarPage() {
                 })}
               </h3>
 
-              {!selectedItems || (selectedItems.tasks.length === 0 && selectedItems.deals.length === 0) ? (
+              {!selectedItems || (selectedItems.tasks.length === 0 && selectedItems.deals.length === 0 && selectedItems.meetings.length === 0) ? (
                 <p className="text-xs text-muted-foreground">Nothing scheduled</p>
               ) : (
                 <>
+                  {selectedItems.meetings.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                        Meetings ({selectedItems.meetings.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {selectedItems.meetings.map(m => {
+                          const startTime = new Date(m.start_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric', minute: '2-digit', hour12: true,
+                          })
+                          const endTime = new Date(m.end_time).toLocaleTimeString('en-US', {
+                            hour: 'numeric', minute: '2-digit', hour12: true,
+                          })
+                          return (
+                            <div key={m.id} className="rounded-lg border border-violet-200 bg-violet-50/50 p-2.5 dark:border-violet-800 dark:bg-violet-950/30">
+                              <p className="text-xs font-medium">{m.title}</p>
+                              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                                <span className="font-medium">{startTime} – {endTime}</span>
+                                <span className={`badge text-[10px] capitalize ${
+                                  m.status === 'completed' ? 'bg-emerald-50 text-emerald-600 ring-emerald-500/20' :
+                                  m.status === 'cancelled' ? 'bg-red-50 text-red-600 ring-red-500/20' :
+                                  'bg-violet-50 text-violet-600 ring-violet-500/20'
+                                }`}>
+                                  {m.status}
+                                </span>
+                              </div>
+                              {(m.contact_name || m.company_name) && (
+                                <p className="mt-1 text-[10px] text-muted-foreground">
+                                  {m.contact_name}{m.contact_name && m.company_name ? ' · ' : ''}{m.company_name}
+                                </p>
+                              )}
+                              {m.meeting_url && (
+                                <a
+                                  href={m.meeting_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-violet-600 hover:underline dark:text-violet-400"
+                                >
+                                  <Video className="h-3 w-3" /> Join Meeting
+                                </a>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {selectedItems.tasks.length > 0 && (
                     <div>
                       <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">

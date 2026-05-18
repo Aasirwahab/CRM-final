@@ -22,10 +22,21 @@ export type CalendarDeal = {
   company_name: string | null
 }
 
+export type CalendarMeeting = {
+  id: string
+  title: string
+  start_time: string
+  end_time: string
+  status: string
+  meeting_url: string | null
+  company_name: string | null
+  contact_name: string | null
+}
+
 export async function getCalendarItems(params: {
-  from: string // ISO date string (start of range)
-  to: string   // ISO date string (end of range)
-}): Promise<{ tasks: CalendarTask[]; deals: CalendarDeal[] }> {
+  from: string
+  to: string
+}): Promise<{ tasks: CalendarTask[]; deals: CalendarDeal[]; meetings: CalendarMeeting[] }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/sign-in')
@@ -38,7 +49,7 @@ export async function getCalendarItems(params: {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile?.default_organization_id) return { tasks: [], deals: [] }
+  if (!profile?.default_organization_id) return { tasks: [], deals: [], meetings: [] }
 
   const orgId = profile.default_organization_id
 
@@ -82,5 +93,25 @@ export async function getCalendarItems(params: {
     company_name: r.leads?.companies?.name ?? null,
   }))
 
-  return { tasks, deals }
+  // Fetch meetings (from booking system) in range
+  const { data: meetingData } = await service
+    .from('meetings')
+    .select(`id, title, start_time, end_time, status, meeting_url, leads(contacts(full_name), companies(name))`)
+    .eq('organization_id', orgId)
+    .gte('start_time', params.from)
+    .lte('start_time', params.to)
+    .order('start_time', { ascending: true })
+
+  const meetings: CalendarMeeting[] = (meetingData ?? []).map((r: any) => ({
+    id: r.id,
+    title: r.title,
+    start_time: r.start_time,
+    end_time: r.end_time,
+    status: r.status,
+    meeting_url: r.meeting_url ?? null,
+    company_name: r.leads?.companies?.name ?? null,
+    contact_name: r.leads?.contacts?.full_name ?? null,
+  }))
+
+  return { tasks, deals, meetings }
 }
