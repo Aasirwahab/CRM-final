@@ -82,12 +82,16 @@ export default function PrivacyPage() {
             </p>
             <div className="rounded-lg border border-border/50 bg-background/50 p-4 space-y-3">
               <div>
-                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Calendar Read Access</p>
-                <p className="m-0">Used solely to check your availability (free/busy status) so we can display open time slots on your public booking page.</p>
+                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Free/Busy Access (calendar.freebusy)</p>
+                <p className="m-0">Used solely to check your availability (free/busy status) so we can display open time slots on your public booking page. We cannot see event titles, descriptions, or attendees — only whether a time slot is free or busy.</p>
               </div>
               <div className="border-t border-border/50 pt-3">
-                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Calendar Event Creation</p>
-                <p className="m-0">Used solely to create a calendar event with a Google Meet link when a lead books a meeting through your booking page.</p>
+                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Event Creation (calendar.events)</p>
+                <p className="m-0">Used solely to create a new calendar event with a Google Meet link when a lead books a meeting through your booking page. We only create events — we do not read, modify, or delete your existing events.</p>
+              </div>
+              <div className="border-t border-border/50 pt-3">
+                <p className="font-medium text-foreground text-xs uppercase tracking-wide mb-1">Email Address (userinfo.email)</p>
+                <p className="m-0">Used to identify your Google account when connecting your calendar. No other profile information is accessed.</p>
               </div>
             </div>
             <p>

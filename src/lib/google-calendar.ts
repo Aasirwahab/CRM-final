@@ -10,7 +10,7 @@ const REDIRECT_URI = `${getAppUrl()}/api/auth/google-calendar/callback`
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.freebusy',
   'https://www.googleapis.com/auth/userinfo.email',
 ]
 
