@@ -23,6 +23,11 @@ export default function HomePage() {
           </Link>
         </div>
       </div>
+      <footer className="absolute bottom-6 flex gap-4 text-sm text-muted-foreground">
+        <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+        <span>·</span>
+        <Link href="/terms" className="hover:underline">Terms of Service</Link>
+      </footer>
     </div>
   )
 }
