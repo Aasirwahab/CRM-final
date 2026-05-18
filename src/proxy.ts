@@ -16,8 +16,11 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const ip = getIP(request)
 
-  // Rate limit auth routes (5/min per IP)
-  if (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || pathname.startsWith('/reset-password')) {
+  // Rate limit auth routes — only POST (actual login/signup attempts), not page views
+  if (
+    request.method === 'POST' &&
+    (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || pathname.startsWith('/reset-password'))
+  ) {
     const rl = await RATE_LIMITS.auth(ip)
     if (!rl.success) {
       return new NextResponse('Too many requests. Please try again later.', {

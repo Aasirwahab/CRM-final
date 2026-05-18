@@ -18,12 +18,12 @@ function createLimiter(prefix: string, tokens: number, windowSec: number) {
 }
 
 const limiters = {
-  auth: createLimiter('auth', 20, 60),
+  auth: createLimiter('auth', 60, 60),
   aiResearch: createLimiter('ai', 10, 60),
   import: createLimiter('import', 3, 60),
-  api: createLimiter('api', 60, 60),
-  write: createLimiter('write', 30, 60),
-  form: createLimiter('form', 20, 60),
+  api: createLimiter('api', 120, 60),
+  write: createLimiter('write', 60, 60),
+  form: createLimiter('form', 30, 60),
 }
 
 async function check(
