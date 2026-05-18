@@ -21,7 +21,13 @@ export default function SignInPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      setError(error.message)
+      if (error.message === 'Invalid login credentials') {
+        setError('Invalid email or password. If you recently signed up, make sure you verified your email.')
+      } else if (error.message === 'Email not confirmed') {
+        setError('Your email is not verified. Please check your inbox for the verification code.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
       return
     }
