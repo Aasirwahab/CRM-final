@@ -355,46 +355,16 @@ export default function HomePage() {
 
           {/* Premium UI Mockup Card with Border-Tracing & Floating stats */}
           <motion.div 
-            className="relative mt-16 sm:mt-24 overflow-hidden rounded-2xl"
+            className="relative mt-16 sm:mt-24"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Border-tracing glowing effect */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl z-20" fill="none">
-              <rect
-                width="100%"
-                height="100%"
-                rx="16"
-                className="stroke-[2] stroke-indigo-500/25 dark:stroke-indigo-400/20"
-                style={{
-                  strokeDasharray: "1000",
-                }}
-              />
-              <motion.rect
-                width="100%"
-                height="100%"
-                rx="16"
-                className="stroke-[2.5] stroke-indigo-600 dark:stroke-violet-500"
-                style={{
-                  strokeDasharray: "250 750",
-                }}
-                animate={{
-                  strokeDashoffset: [0, -1000],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-              />
-            </svg>
-
-            {/* Floating stats badges on the sides */}
+            {/* Floating stats badges on the sides — OUTSIDE overflow-hidden */}
             <motion.div 
               className="absolute lg:-left-20 xl:-left-28 top-16 z-30 hidden lg:flex items-center gap-3 rounded-2xl bg-white/95 border border-slate-200/80 p-3.5 shadow-xl dark:bg-zinc-900/95 dark:border-zinc-800"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-455">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                 <Zap className="size-4.5" />
               </div>
               <div className="text-left text-xs">
@@ -406,7 +376,7 @@ export default function HomePage() {
             <motion.div 
               className="absolute lg:-right-20 xl:-right-28 bottom-20 z-30 hidden lg:flex items-center gap-3 rounded-2xl bg-white/95 border border-slate-200/80 p-3.5 shadow-xl dark:bg-zinc-900/95 dark:border-zinc-800"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
                 <DollarSign className="size-4.5" />
               </div>
               <div className="text-left text-xs">
@@ -414,6 +384,38 @@ export default function HomePage() {
                 <p className="text-slate-500 dark:text-zinc-500 font-mono text-[10px]">89.4% Cached Tokens</p>
               </div>
             </motion.div>
+
+            {/* Inner container with overflow-hidden to clip the border-trace SVG */}
+            <div className="relative overflow-hidden rounded-2xl">
+              {/* Border-tracing glowing effect */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl z-20" fill="none">
+                <rect
+                  width="100%"
+                  height="100%"
+                  rx="16"
+                  className="stroke-[2] stroke-indigo-500/25 dark:stroke-indigo-400/20"
+                  style={{
+                    strokeDasharray: "1000",
+                  }}
+                />
+                <motion.rect
+                  width="100%"
+                  height="100%"
+                  rx="16"
+                  className="stroke-[2.5] stroke-indigo-600 dark:stroke-violet-500"
+                  style={{
+                    strokeDasharray: "250 750",
+                  }}
+                  animate={{
+                    strokeDashoffset: [0, -1000],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
+                />
+              </svg>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-950/50">
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 sm:p-6 dark:border-zinc-900/60 dark:bg-zinc-950/20">
@@ -510,6 +512,7 @@ export default function HomePage() {
                 </div>
 
               </div>
+            </div>
             </div>
           </motion.div>
         </div>
