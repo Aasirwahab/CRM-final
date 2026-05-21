@@ -14,13 +14,13 @@ import {
   Clock, 
   Bell, 
   Mail,
-  Layers,
   Menu,
   X,
   ArrowRight,
   Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/ui/logo"
 
 function Section({
   icon: Icon,
@@ -55,15 +55,10 @@ export default function PrivacyPage() {
       <header className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-slate-50/80 backdrop-blur-md dark:border-zinc-800/40 dark:bg-[#0c0a12]/80">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-600/20">
-                <Layers className="size-5" />
-              </div>
-              <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 bg-clip-text text-transparent">
-                LeadFlow
-              </span>
+            <Link href="/">
+              <Logo iconSize={30} textSize="text-lg" />
             </Link>
-            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400">
               BETA
             </span>
           </div>
@@ -326,12 +321,7 @@ export default function PrivacyPage() {
             {/* Column 1: Brand Info */}
             <div className="lg:col-span-4 space-y-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-tr from-indigo-600 to-violet-500 text-white animate-pulse">
-                  <Layers className="size-4" />
-                </div>
-                <span className="text-base font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                  LeadFlow
-                </span>
+                <Logo iconSize={24} textSize="text-base" />
                 <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] font-bold text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400">
                   BETA
                 </span>

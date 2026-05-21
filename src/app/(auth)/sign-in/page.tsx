@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Layers, ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/ui/logo'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -48,13 +49,8 @@ export default function SignInPage() {
 
         {/* Header Block */}
         <div className="flex items-center gap-2.5">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 text-white shadow-md">
-              <Layers className="size-4.5" />
-            </div>
-            <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              LeadFlow
-            </span>
+          <Link href="/" className="dark flex items-center gap-2.5">
+            <Logo iconSize={30} textSize="text-lg" />
           </Link>
           <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-[9px] font-bold text-indigo-400 border border-zinc-700/50">
             BETA
@@ -97,13 +93,8 @@ export default function SignInPage() {
           
           {/* Mobile logo */}
           <div className="flex items-center justify-between lg:hidden">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md">
-                <Layers className="size-4.5" />
-              </div>
-              <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 bg-clip-text text-transparent">
-                LeadFlow
-              </span>
+            <Link href="/">
+              <Logo iconSize={30} textSize="text-lg" />
             </Link>
             <Link href="/" className="text-xs text-slate-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white transition-colors">
               &larr; Back

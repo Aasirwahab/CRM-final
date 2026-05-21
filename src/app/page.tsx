@@ -7,7 +7,6 @@ import {
   Upload, 
   Shield, 
   Cpu, 
-  Layers, 
   UserCheck, 
   Database, 
   CheckCircle2, 
@@ -24,9 +23,29 @@ import {
   X,
   Sparkles,
   Calendar,
-  Video
+  Video,
+  Layers
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { motion, AnimatePresence } from "framer-motion"
+import { Logo } from "@/components/ui/logo"
+import { PipelineSimulator } from "@/components/ui/pipeline-simulator"
+
+// Metric Pop animation helper
+const AnimatedMetric = ({ value, prefix = "", suffix = "" }: { value: string | number, prefix?: string, suffix?: string }) => {
+  return (
+    <motion.span
+      key={value}
+      initial={{ scale: 1.15, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className="inline-block"
+    >
+      {prefix}{value}{suffix}
+    </motion.span>
+  )
+}
+
 
 export default function HomePage() {
   // Mobile Nav Toggle
@@ -143,44 +162,73 @@ export default function HomePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 dark:bg-[#0c0a12] dark:text-zinc-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 dark:bg-[#0c0a12] dark:text-zinc-100 overflow-x-hidden">
       
       {/* 1. Transparent Header */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-slate-50/80 backdrop-blur-md dark:border-zinc-800/40 dark:bg-[#0c0a12]/80">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md shadow-indigo-600/20">
-              <Layers className="size-5" />
-            </div>
-            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 bg-clip-text text-transparent">
-              LeadFlow
-            </span>
+          <div className="flex items-center gap-2">
+            <Logo iconSize={30} textSize="text-lg" />
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
               BETA
             </span>
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-zinc-400">
-            <Link href="#how-it-works" className="hover:text-indigo-650 dark:hover:text-white transition-colors">How it Works</Link>
-            <Link href="#ai-playground" className="hover:text-indigo-650 dark:hover:text-white transition-colors">Interactive AI</Link>
-            <Link href="#roi-calculator" className="hover:text-indigo-650 dark:hover:text-white transition-colors">ROI Calculator</Link>
-            <Link href="#booking-showcase" className="hover:text-indigo-650 dark:hover:text-white transition-colors">Meeting Booking</Link>
-            <Link href="#security" className="hover:text-indigo-650 dark:hover:text-white transition-colors">Security</Link>
-            <Link href="#faq" className="hover:text-indigo-650 dark:hover:text-white transition-colors">FAQ</Link>
-          </nav>
+          <motion.nav 
+            className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-zinc-400"
+            initial="initial"
+            animate="animate"
+            variants={{
+              initial: { opacity: 0 },
+              animate: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+          >
+            {[
+              { label: "How it Works", href: "#how-it-works" },
+              { label: "Interactive AI", href: "#ai-playground" },
+              { label: "ROI Calculator", href: "#roi-calculator" },
+              { label: "Meeting Booking", href: "#booking-showcase" },
+              { label: "Security", href: "#security" },
+              { label: "FAQ", href: "#faq" }
+            ].map((link) => (
+              <motion.div
+                key={link.label}
+                variants={{
+                  initial: { opacity: 0, y: -8 },
+                  animate: { opacity: 1, y: 0 }
+                }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                <Link href={link.href} className="relative group py-1 hover:text-indigo-650 dark:hover:text-white transition-colors">
+                  {link.label}
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-indigo-550 to-violet-555 transition-all duration-300 group-hover:w-full" />
+                </Link>
+              </motion.div>
+            ))}
+          </motion.nav>
 
           {/* CTAs */}
-          <div className="hidden md:flex items-center gap-4">
+          <motion.div 
+            className="hidden md:flex items-center gap-4"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+          >
             <Link href="/sign-in" className="text-sm font-medium text-slate-600 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-white transition-colors">
               Sign in
             </Link>
             <Link href="/sign-up">
-              <Button size="lg" className="rounded-full bg-[#1b172b] px-6 text-white hover:bg-[#25203d] dark:bg-indigo-600 dark:hover:bg-indigo-700">
+              <Button size="lg" className="rounded-full bg-[#1b172b] px-6 text-white hover:bg-[#25203d] dark:bg-indigo-600 dark:hover:bg-indigo-700 shadow-md shadow-indigo-500/10">
                 Launch App
               </Button>
             </Link>
-          </div>
+          </motion.div>
 
           {/* Mobile menu button */}
           <button 
@@ -192,157 +240,278 @@ export default function HomePage() {
         </div>
 
         {/* Mobile menu panel */}
-        {mobileMenuOpen && (
-          <div className="border-b border-slate-200 bg-slate-50 px-6 py-4 md:hidden dark:border-zinc-800 dark:bg-[#0c0a12]">
-            <nav className="flex flex-col gap-4 text-sm font-medium text-slate-600 dark:text-zinc-400">
-              <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">How it Works</Link>
-              <Link href="#ai-playground" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Interactive AI</Link>
-              <Link href="#roi-calculator" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">ROI Calculator</Link>
-              <Link href="#booking-showcase" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Meeting Booking</Link>
-              <Link href="#security" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Security</Link>
-              <Link href="#faq" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">FAQ</Link>
-              <div className="h-px bg-slate-200 my-2 dark:bg-zinc-800" />
-              <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Sign in</Link>
-              <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full rounded-full bg-[#1b172b] text-white hover:bg-[#25203d] dark:bg-indigo-600">
-                  Launch App
-                </Button>
-              </Link>
-            </nav>
-          </div>
-        )}
-      </header>
-
-      {/* 2. Hero Section */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div 
+              className="border-b border-slate-200 bg-slate-50 px-6 py-4 md:hidden dark:border-zinc-800 dark:bg-[#0c0a12]"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <nav className="flex flex-col gap-4 text-sm font-medium text-slate-600 dark:text-zinc-400">
+                <Link href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">How it Works</Link>
+                <Link href="#ai-playground" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Interactive AI</Link>
+                <Link href="#roi-calculator" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">ROI Calculator</Link>
+                <Link href="#booking-showcase" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Meeting Booking</Link>
+                <Link href="#security" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Security</Link>
+                <Link href="#faq" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">FAQ</Link>
+                <div className="h-px bg-slate-200 my-2 dark:bg-zinc-800" />
+                <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)} className="hover:text-indigo-600 dark:hover:text-white">Sign in</Link>
+                <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full rounded-full bg-[#1b172b] text-white hover:bg-[#25203d] dark:bg-indigo-600">
+                    Launch App
+                  </Button>
+                </Link>
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>      {/* 2. Hero Section */}
       <section className="relative overflow-hidden py-20 lg:py-32">
         {/* Soft Ambient Background Orbs */}
-        <div className="absolute top-1/4 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-200/40 blur-[100px] dark:bg-indigo-950/20" />
-        <div className="absolute top-1/3 right-10 -z-10 h-64 w-64 rounded-full bg-violet-200/30 blur-[80px] dark:bg-purple-950/10" />
+        <motion.div 
+          className="absolute top-1/4 left-1/2 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-200/40 blur-[100px] dark:bg-indigo-950/20"
+          animate={{
+            x: ["-50%", "-40%", "-60%", "-50%"],
+            y: [0, 20, -15, 0],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        <motion.div 
+          className="absolute top-1/3 right-10 -z-10 h-64 w-64 rounded-full bg-violet-200/30 blur-[80px] dark:bg-purple-950/10"
+          animate={{
+            x: [0, -30, 20, 0],
+            y: [0, -20, 30, 0],
+          }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
 
         <div className="mx-auto max-w-5xl px-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100/80 px-4 py-1.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-900/40 dark:text-indigo-300">
-            <Sparkles className="size-3.5 fill-indigo-700/10 dark:fill-indigo-300/10" />
-            AI-Powered Multi-Tenant CRM
-          </div>
-          
-          <h1 className="mt-8 text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white">
-            Where Leads Grow
-          </h1>
-          
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-zinc-400">
-            Ditch manual enrichment. Upload raw lead exports, deduplicate contacts using fuzzy matching, and trigger automated Claude research with built-in cost guardrails.
-          </p>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.15
+                }
+              }
+            }}
+            className="flex flex-col items-center"
+          >
+            <motion.div 
+              variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-50 border border-indigo-100/80 px-4 py-1.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-900/40 dark:text-indigo-300"
+            >
+              <Sparkles className="size-3.5 fill-indigo-700/10 dark:fill-indigo-300/10" />
+              AI-Powered Multi-Tenant CRM
+            </motion.div>
+            
+            <motion.h1 
+              variants={{ hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="mt-8 text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white"
+            >
+              Where Leads Grow
+            </motion.h1>
+            
+            <motion.p 
+              variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.8 }}
+              className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 dark:text-zinc-400"
+            >
+              Ditch manual enrichment. Upload raw lead exports, deduplicate contacts using fuzzy matching, and trigger automated Claude research with built-in cost guardrails.
+            </motion.p>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link href="/sign-up">
-              <Button size="lg" className="rounded-full bg-[#1b172b] px-8 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-[#25203d] dark:bg-indigo-600 dark:hover:bg-indigo-700">
-                Try it now <ArrowRight className="ml-2 size-4" />
-              </Button>
-            </Link>
-            <Link href="/sign-in">
-              <Button variant="outline" size="lg" className="rounded-full px-8 text-sm font-semibold border-slate-300 dark:border-zinc-800">
-                Sign In
-              </Button>
-            </Link>
-          </div>
+            <motion.div 
+              variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.8 }}
+              className="mt-10 flex flex-wrap justify-center gap-4"
+            >
+              <Link href="/sign-up">
+                <Button size="lg" className="rounded-full bg-[#1b172b] px-8 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-[#25203d] dark:bg-indigo-600 dark:hover:bg-indigo-700">
+                  Try it now <ArrowRight className="ml-2 size-4" />
+                </Button>
+              </Link>
+              <Link href="/sign-in">
+                <Button variant="outline" size="lg" className="rounded-full px-8 text-sm font-semibold border-slate-300 dark:border-zinc-800">
+                  Sign In
+                </Button>
+              </Link>
+            </motion.div>
+          </motion.div>
 
-          {/* Premium UI Mockup Card */}
-          <div className="mt-16 sm:mt-24 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-950/50">
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 sm:p-6 dark:border-zinc-900/60 dark:bg-zinc-950/20">
-              
-              {/* Mockup Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-zinc-800/60">
-                <div className="flex items-center gap-3">
-                  <Activity className="size-5 text-indigo-600" />
-                  <div className="text-left">
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200">Active Import Batch</h3>
-                    <p className="text-xs text-slate-500 dark:text-zinc-500">export_apollo_leads_q2.csv</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Trigger.dev queue active
-                  </span>
-                  <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">Org Cap: $20.00 max</span>
-                </div>
+          {/* Premium UI Mockup Card with Border-Tracing & Floating stats */}
+          <motion.div 
+            className="relative mt-16 sm:mt-24 overflow-hidden rounded-2xl"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {/* Border-tracing glowing effect */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl z-20" fill="none">
+              <rect
+                width="100%"
+                height="100%"
+                rx="16"
+                className="stroke-[2] stroke-indigo-500/25 dark:stroke-indigo-400/20"
+                style={{
+                  strokeDasharray: "1000",
+                }}
+              />
+              <motion.rect
+                width="100%"
+                height="100%"
+                rx="16"
+                className="stroke-[2.5] stroke-indigo-600 dark:stroke-violet-500"
+                style={{
+                  strokeDasharray: "250 750",
+                }}
+                animate={{
+                  strokeDashoffset: [0, -1000],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              />
+            </svg>
+
+            {/* Floating stats badges on the sides */}
+            <motion.div 
+              className="absolute lg:-left-20 xl:-left-28 top-16 z-30 hidden lg:flex items-center gap-3 rounded-2xl bg-white/95 border border-slate-200/80 p-3.5 shadow-xl dark:bg-zinc-900/95 dark:border-zinc-800"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-455">
+                <Zap className="size-4.5" />
               </div>
-
-              {/* Mockup Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-b border-slate-200 dark:border-zinc-800/60">
-                <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Total Streamed</p>
-                  <p className="text-xl font-bold mt-1">4,812 rows</p>
-                </div>
-                <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Fuzzy Duplicates Skipped</p>
-                  <p className="text-xl font-bold mt-1 text-indigo-600">312 contacts</p>
-                </div>
-                <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">AI Tokens Cached</p>
-                  <p className="text-xl font-bold mt-1 text-emerald-600">89.4% saved</p>
-                </div>
-                <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
-                  <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Lead Scoring Engine</p>
-                  <p className="text-xl font-bold mt-1">HNSW Index</p>
-                </div>
+              <div className="text-left text-xs">
+                <p className="font-bold text-slate-800 dark:text-zinc-200">Queue Speed</p>
+                <p className="text-slate-500 dark:text-zinc-500 font-mono text-[10px]">100 leads / sec</p>
               </div>
+            </motion.div>
 
-              {/* Mockup Database List Preview */}
-              <div className="pt-4 space-y-3">
-                <p className="text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Recent Enriched Leads</p>
+            <motion.div 
+              className="absolute lg:-right-20 xl:-right-28 bottom-20 z-30 hidden lg:flex items-center gap-3 rounded-2xl bg-white/95 border border-slate-200/80 p-3.5 shadow-xl dark:bg-zinc-900/95 dark:border-zinc-800"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400">
+                <DollarSign className="size-4.5" />
+              </div>
+              <div className="text-left text-xs">
+                <p className="font-bold text-slate-800 dark:text-zinc-200">Cost Saved</p>
+                <p className="text-slate-500 dark:text-zinc-500 font-mono text-[10px]">89.4% Cached Tokens</p>
+              </div>
+            </motion.div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-950/50">
+              <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 sm:p-6 dark:border-zinc-900/60 dark:bg-zinc-950/20">
                 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
+                {/* Mockup Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-zinc-800/60">
                   <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-rose-500" />
+                    <Activity className="size-5 text-indigo-600" />
                     <div className="text-left">
-                      <span className="text-sm font-semibold">Stark Industries</span>
-                      <span className="text-xs text-slate-400 dark:text-zinc-500 block">Energy & Power</span>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200">Active Import Batch</h3>
+                      <p className="text-xs text-slate-500 dark:text-zinc-500">export_apollo_leads_q2.csv</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                    <span className="text-xs bg-rose-50 border border-rose-100 px-2 py-0.5 rounded text-rose-700 font-semibold dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400">
-                      95/100 · HOT
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Trigger.dev queue active
                     </span>
-                    <span className="text-xs text-slate-400 dark:text-zinc-500">Claude Deep Research Completed</span>
+                    <span className="text-xs font-mono text-slate-500 dark:text-zinc-500">Org Cap: $20.00 max</span>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-amber-500" />
-                    <div className="text-left">
-                      <span className="text-sm font-semibold">Oscorp Enterprises</span>
-                      <span className="text-xs text-slate-400 dark:text-zinc-500 block">Bio-Tech & Pharma</span>
-                    </div>
+                {/* Mockup Metrics Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-b border-slate-200 dark:border-zinc-800/60">
+                  <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
+                    <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Total Streamed</p>
+                    <p className="text-xl font-bold mt-1">4,812 rows</p>
                   </div>
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                    <span className="text-xs bg-amber-50 border border-amber-100 px-2 py-0.5 rounded text-amber-700 font-semibold dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400">
-                      72/100 · WARM
-                    </span>
-                    <span className="text-xs text-slate-400 dark:text-zinc-500">Claude Standard Research Completed</span>
+                  <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
+                    <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Fuzzy Duplicates Skipped</p>
+                    <p className="text-xl font-bold mt-1 text-indigo-600">312 contacts</p>
+                  </div>
+                  <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
+                    <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">AI Tokens Cached</p>
+                    <p className="text-xl font-bold mt-1 text-emerald-600">89.4% saved</p>
+                  </div>
+                  <div className="text-left p-3 rounded-lg bg-white border border-slate-200/60 dark:bg-zinc-900/40 dark:border-zinc-800/30">
+                    <p className="text-xs font-medium text-slate-500 dark:text-zinc-500">Lead Scoring Engine</p>
+                    <p className="text-xl font-bold mt-1">HNSW Index</p>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <div className="text-left">
-                      <span className="text-sm font-semibold">Wayne Enterprises</span>
-                      <span className="text-xs text-slate-400 dark:text-zinc-500 block">Defense & Aviation</span>
+                {/* Mockup Database List Preview */}
+                <div className="pt-4 space-y-3">
+                  <p className="text-left text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Recent Enriched Leads</p>
+                  
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-rose-500" />
+                      <div className="text-left">
+                        <span className="text-sm font-semibold">Stark Industries</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 block">Energy & Power</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                      <span className="text-xs bg-rose-50 border border-rose-100 px-2 py-0.5 rounded text-rose-700 font-semibold dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-400">
+                        95/100 · HOT
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-zinc-500">Claude Deep Research Completed</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                    <span className="text-xs bg-blue-50 border border-blue-100 px-2 py-0.5 rounded text-blue-700 font-semibold dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400">
-                      45/100 · COLD
-                    </span>
-                    <span className="text-xs text-slate-400 dark:text-zinc-500">Basic Research Completed</span>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-amber-500" />
+                      <div className="text-left">
+                        <span className="text-sm font-semibold">Oscorp Enterprises</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 block">Bio-Tech & Pharma</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                      <span className="text-xs bg-amber-50 border border-amber-100 px-2 py-0.5 rounded text-amber-700 font-semibold dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-400">
+                        72/100 · WARM
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-zinc-500">Claude Standard Research Completed</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 rounded-lg bg-white/70 border border-slate-100 hover:bg-white dark:bg-zinc-900/20 dark:border-zinc-850 dark:hover:bg-zinc-900/40 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <div className="text-left">
+                        <span className="text-sm font-semibold">Wayne Enterprises</span>
+                        <span className="text-xs text-slate-400 dark:text-zinc-500 block">Defense & Aviation</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                      <span className="text-xs bg-blue-50 border border-blue-100 px-2 py-0.5 rounded text-blue-700 font-semibold dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-400">
+                        45/100 · COLD
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-zinc-500">Basic Research Completed</span>
+                    </div>
                   </div>
                 </div>
+
               </div>
-
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -364,46 +533,8 @@ export default function HomePage() {
                   LeadFlow orchestrates automated, multi-tiered pipeline workers in the background. It cleans data, drops duplicates, enriches details, and scores quality without blocking your main application loop.
                 </p>
               </div>
-
               {/* Interactive Ingestion Flow Graphic */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-zinc-900/60 dark:bg-zinc-950/30">
-                <div className="space-y-3.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">Pipeline Flow</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-mono text-[10px]">active</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2 text-left border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-450">
-                      <Check className="size-3.5" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold">CSV Stream Verified</p>
-                      <p className="text-[9px] text-slate-400 dark:text-zinc-500">10,000 rows parsed successfully</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2 text-left border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400">
-                      <Sparkles className="size-3 animate-pulse" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold">pg_trgm Fuzzy Matching</p>
-                      <p className="text-[9px] text-slate-400 dark:text-zinc-500">Scanned company directories for duplicates</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-2 text-left border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400">
-                      <Zap className="size-3" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold">Rule Scorer & Classification</p>
-                      <p className="text-[9px] text-slate-400 dark:text-zinc-500">Separating Hot/Warm/Cold metadata profiles</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PipelineSimulator />
 
               <div className="hidden lg:block">
                 <Link href="/sign-up" className="inline-flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
@@ -413,10 +544,29 @@ export default function HomePage() {
             </div>
 
             {/* Right Side: Re-designed Premium Cards */}
-            <div className="lg:col-span-7 flex flex-col gap-6">
+            <motion.div 
+              className="lg:col-span-7 flex flex-col gap-6"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: {
+                    staggerChildren: 0.1
+                  }
+                }
+              }}
+            >
               
               {/* Card 1 */}
-              <div className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50">
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+                }}
+                className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50"
+              >
                 <div className="absolute top-6 right-6 text-sm font-mono font-bold text-slate-300 dark:text-zinc-800">
                   01
                 </div>
@@ -431,10 +581,16 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Card 2 */}
-              <div className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50">
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+                }}
+                className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50"
+              >
                 <div className="absolute top-6 right-6 text-sm font-mono font-bold text-slate-300 dark:text-zinc-800">
                   02
                 </div>
@@ -449,10 +605,16 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Card 3 */}
-              <div className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50">
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+                }}
+                className="group relative rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-zinc-900 dark:bg-zinc-950/50"
+              >
                 <div className="absolute top-6 right-6 text-sm font-mono font-bold text-slate-300 dark:text-zinc-800">
                   03
                 </div>
@@ -467,9 +629,9 @@ export default function HomePage() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-            </div>
+            </motion.div>
 
           </div>
         </div>
@@ -488,129 +650,130 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 flex justify-center gap-2 rounded-full bg-slate-200/50 p-1 dark:bg-zinc-900/60 max-w-md mx-auto">
-            <button 
-              onClick={() => setActiveTier("basic")}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-all ${
-                activeTier === "basic" 
-                  ? "bg-white text-indigo-600 shadow-sm dark:bg-zinc-800 dark:text-white" 
-                  : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-              }`}
-            >
-              Basic Research
-            </button>
-            <button 
-              onClick={() => setActiveTier("standard")}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-all ${
-                activeTier === "standard" 
-                  ? "bg-white text-indigo-600 shadow-sm dark:bg-zinc-800 dark:text-white" 
-                  : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-              }`}
-            >
-              Standard
-            </button>
-            <button 
-              onClick={() => setActiveTier("deep")}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold transition-all ${
-                activeTier === "deep" 
-                  ? "bg-white text-indigo-600 shadow-sm dark:bg-zinc-800 dark:text-white" 
-                  : "text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200"
-              }`}
-            >
-              Deep Research
-            </button>
+            {(["basic", "standard", "deep"] as const).map((tier) => {
+              const label = tier === "basic" ? "Basic Research" : tier === "standard" ? "Standard" : "Deep Research"
+              const isActive = activeTier === tier
+              return (
+                <button
+                  key={tier}
+                  onClick={() => setActiveTier(tier)}
+                  className="relative flex-1 rounded-full py-2 text-xs font-semibold transition-colors duration-200 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200 font-sans cursor-pointer"
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="activePlaygroundTab"
+                      className="absolute inset-0 rounded-full bg-white shadow-sm dark:bg-zinc-800"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className={`relative z-10 ${isActive ? "text-indigo-600 dark:text-white" : ""}`}>
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
           {/* Playground Interface */}
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-md dark:border-zinc-900 dark:bg-zinc-950/60">
-            <div className="flex flex-col md:flex-row gap-6 justify-between border-b border-slate-200 pb-6 dark:border-zinc-900">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Target Company</span>
-                </div>
-                <h3 className="text-lg font-bold">{aiTiersData[activeTier].companyName}</h3>
-                <span className="inline-block rounded-md bg-indigo-50 border border-indigo-100/60 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-950/30 dark:border-indigo-900/20 dark:text-indigo-400">
-                  {aiTiersData[activeTier].industry}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-6 text-left">
-                <div>
-                  <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">LLM Engine</span>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{aiTiersData[activeTier].model}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">Avg. Cost</span>
-                  <span className="text-xs font-bold">{aiTiersData[activeTier].cost}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">Enriched In</span>
-                  <span className="text-xs font-bold">{aiTiersData[activeTier].speed}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Research Report Visual fields */}
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-              <div className="lg:col-span-7 space-y-5">
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">AI Analysis Summary</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
-                    {aiTiersData[activeTier].summary}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">Scoring Category</h4>
-                  <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 border px-3 py-1 text-xs font-bold dark:bg-zinc-900 dark:border-zinc-800">
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    {aiTiersData[activeTier].score}
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">Detected Friction & Pain Points</h4>
-                  <ul className="mt-2 space-y-2">
-                    {aiTiersData[activeTier].painPoints.map((point, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm text-slate-600 dark:text-zinc-400">
-                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">Recommended Action</h4>
-                  <p className="mt-2 text-sm text-slate-700 dark:text-zinc-300 italic">
-                    "{aiTiersData[activeTier].recommendation}"
-                  </p>
-                </div>
-              </div>
-
-              {/* Outreach message panel */}
-              <div className="lg:col-span-5 bg-slate-50 border border-slate-200/50 p-4 rounded-xl flex flex-col justify-between dark:bg-zinc-900/30 dark:border-zinc-850">
-                <div>
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3 dark:border-zinc-900">
-                    <span className="text-xs font-bold uppercase text-slate-500 dark:text-zinc-400">Outreach Message Draft</span>
-                    <button 
-                      onClick={() => handleCopy(aiTiersData[activeTier].outreachMessage)}
-                      className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-white transition-colors"
-                    >
-                      {copiedText ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
-                      {copiedText ? "Copied" : "Copy"}
-                    </button>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTier}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-md dark:border-zinc-900 dark:bg-zinc-950/60"
+            >
+              <div className="flex flex-col md:flex-row gap-6 justify-between border-b border-slate-200 pb-6 dark:border-zinc-900">
+                <div className="space-y-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">Target Company</span>
                   </div>
-                  <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-zinc-300">
-                    {aiTiersData[activeTier].outreachMessage}
-                  </pre>
-                </div>
-                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-zinc-900">
-                  <span className="text-[10px] text-slate-400 dark:text-zinc-500 leading-normal block">
-                    *Message generated using organization templates linked to current research parameters.
+                  <h3 className="text-lg font-bold">{aiTiersData[activeTier].companyName}</h3>
+                  <span className="inline-block rounded-md bg-indigo-50 border border-indigo-100/60 px-2 py-0.5 text-xs font-medium text-indigo-650 dark:bg-indigo-950/30 dark:border-indigo-900/20 dark:text-indigo-400">
+                    {aiTiersData[activeTier].industry}
                   </span>
                 </div>
+                <div className="grid grid-cols-3 gap-6 text-left">
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">LLM Engine</span>
+                    <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{aiTiersData[activeTier].model}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">Avg. Cost</span>
+                    <span className="text-xs font-bold">{aiTiersData[activeTier].cost}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 block">Enriched In</span>
+                    <span className="text-xs font-bold">{aiTiersData[activeTier].speed}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* Research Report Visual fields */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+                <div className="lg:col-span-7 space-y-5">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">AI Analysis Summary</h4>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-zinc-300">
+                      {aiTiersData[activeTier].summary}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500 tracking-wider">Scoring Category</h4>
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-slate-100 border px-3 py-1 text-xs font-bold dark:bg-zinc-900 dark:border-zinc-800">
+                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                      {aiTiersData[activeTier].score}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-550 tracking-wider">Detected Friction & Pain Points</h4>
+                    <ul className="mt-2 space-y-2">
+                      {aiTiersData[activeTier].painPoints.map((point, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-slate-600 dark:text-zinc-400">
+                          <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-550 tracking-wider">Recommended Action</h4>
+                    <p className="mt-2 text-sm text-slate-700 dark:text-zinc-300 italic">
+                      "{aiTiersData[activeTier].recommendation}"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Outreach message panel */}
+                <div className="lg:col-span-5 bg-slate-50 border border-slate-200/50 p-4 rounded-xl flex flex-col justify-between dark:bg-zinc-900/30 dark:border-zinc-850">
+                  <div>
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3 dark:border-zinc-900">
+                      <span className="text-xs font-bold uppercase text-slate-500 dark:text-zinc-400">Outreach Message Draft</span>
+                      <button 
+                        onClick={() => handleCopy(aiTiersData[activeTier].outreachMessage)}
+                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-indigo-650 dark:text-zinc-500 dark:hover:text-white transition-colors"
+                      >
+                        {copiedText ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+                        {copiedText ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                    <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-zinc-300">
+                      {aiTiersData[activeTier].outreachMessage}
+                    </pre>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-zinc-900">
+                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 leading-normal block">
+                      *Message generated using organization templates linked to current research parameters.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </section>
 
@@ -696,7 +859,9 @@ export default function HomePage() {
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-semibold text-zinc-400 block tracking-wide">Incremental Revenue</span>
-                      <span className="text-2xl font-bold text-white tracking-tight">${extraRevenue.toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-white tracking-tight">
+                        <AnimatedMetric value={extraRevenue.toLocaleString()} prefix="$" />
+                      </span>
                     </div>
                   </div>
 
@@ -707,7 +872,9 @@ export default function HomePage() {
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-semibold text-zinc-400 block tracking-wide">Research Time Saved</span>
-                      <span className="text-xl font-bold text-white tracking-tight">{hoursSaved.toLocaleString()} hours</span>
+                      <span className="text-xl font-bold text-white tracking-tight">
+                        <AnimatedMetric value={hoursSaved.toLocaleString()} suffix=" hours" />
+                      </span>
                     </div>
                   </div>
 
@@ -718,7 +885,9 @@ export default function HomePage() {
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-semibold text-zinc-400 block tracking-wide">Extra Closed Deals</span>
-                      <span className="text-xl font-bold text-white tracking-tight">+{extraDeals} deals</span>
+                      <span className="text-xl font-bold text-white tracking-tight">
+                        <AnimatedMetric value={extraDeals} prefix="+" suffix=" deals" />
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -817,143 +986,167 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {!bookingConfirmed ? (
-                  <div className="space-y-4">
-                    {/* Date tabs */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-550">Select Date</label>
-                      <div className="flex gap-2">
-                        {[
-                          { id: "May 21", label: "Thu, May 21" },
-                          { id: "May 22", label: "Fri, May 22" },
-                          { id: "May 25", label: "Mon, May 25" }
-                        ].map((d) => (
-                          <button
-                            key={d.id}
-                            type="button"
-                            onClick={() => { setSelectedDate(d.id); setSelectedTime(null); }}
-                            className={`flex-1 rounded-xl py-2 px-1 text-[11px] font-bold border transition-all ${
-                              selectedDate === d.id
-                                ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-400"
-                                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850 dark:text-zinc-400 dark:hover:bg-zinc-900/40"
-                            }`}
-                          >
-                            {d.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Time slots */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-550">Available Slots</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          "10:00 AM",
-                          "11:30 AM",
-                          "2:00 PM",
-                          "3:30 PM"
-                        ].map((time) => (
-                          <button
-                            key={time}
-                            type="button"
-                            onClick={() => setSelectedTime(time)}
-                            className={`rounded-xl py-2 text-xs font-semibold border transition-all ${
-                              selectedTime === time
-                                ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-650/15"
-                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-zinc-900/40 dark:border-zinc-850 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                            }`}
-                          >
-                            {time}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Booking Form Details */}
-                    {selectedTime && (
-                      <div className="space-y-3.5 border-t border-slate-100 pt-4 dark:border-zinc-900">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[9px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-500">Your Name</label>
-                            <input 
-                              type="text" 
-                              placeholder="John Doe" 
-                              value={bookingName}
-                              onChange={(e) => setBookingName(e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/20"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[9px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-500">Email Address</label>
-                            <input 
-                              type="email" 
-                              placeholder="john@company.com" 
-                              value={bookingEmail}
-                              onChange={(e) => setBookingEmail(e.target.value)}
-                              className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/20"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <Button 
-                          onClick={() => {
-                            if (bookingName && bookingEmail) {
-                              setBookingConfirmed(true);
-                            }
-                          }}
-                          className="w-full rounded-xl bg-indigo-650 py-2.5 text-white font-bold hover:bg-indigo-750 transition-colors shadow-md shadow-indigo-655/10 text-xs"
-                        >
-                          Confirm Booking for {selectedTime}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-5 py-4 text-center">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
-                      <Check className="size-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-base font-extrabold text-slate-800 dark:text-zinc-150">Booking Confirmed! 🎉</h4>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                        Invitation details sent to <span className="font-semibold text-slate-850 dark:text-white">{bookingEmail}</span>
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 text-left space-y-2 dark:border-zinc-900 dark:bg-zinc-950/20 text-xs leading-relaxed max-w-sm mx-auto">
-                      <div>
-                        <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Event</span>
-                        <span className="font-semibold text-slate-800 dark:text-zinc-200">LeadFlow Product Demo (30m)</span>
-                      </div>
-                      <div className="border-t border-slate-100 pt-2 dark:border-zinc-900/60">
-                        <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Date / Time</span>
-                        <span className="font-semibold text-slate-800 dark:text-zinc-200">{selectedDate}, 2026 at {selectedTime}</span>
-                      </div>
-                      <div className="border-t border-slate-100 pt-2 dark:border-zinc-900/60">
-                        <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Video Conference Link</span>
-                        <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 block break-all font-semibold">
-                          meet.google.com/abc-defg-hij
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => {
-                        setBookingConfirmed(false);
-                        setSelectedTime(null);
-                        setBookingName("");
-                        setBookingEmail("");
-                      }}
-                      variant="outline"
-                      className="rounded-xl border-slate-200 text-xs text-slate-655 hover:bg-slate-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                <AnimatePresence mode="wait">
+                  {!bookingConfirmed ? (
+                    <motion.div 
+                      key="booking-flow"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.25 }}
+                      className="space-y-4"
                     >
-                      Book Another Demo
-                    </Button>
-                  </div>
-                )}
+                      {/* Date tabs */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-550">Select Date</label>
+                        <div className="flex gap-2">
+                          {[
+                            { id: "May 21", label: "Thu, May 21" },
+                            { id: "May 22", label: "Fri, May 22" },
+                            { id: "May 25", label: "Mon, May 25" }
+                          ].map((d) => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => { setSelectedDate(d.id); setSelectedTime(null); }}
+                              className={`flex-1 rounded-xl py-2 px-1 text-[11px] font-bold border transition-all ${
+                                selectedDate === d.id
+                                  ? "bg-indigo-50 border-indigo-200 text-indigo-650 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-400"
+                                  : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850 dark:text-zinc-400 dark:hover:bg-zinc-900/40"
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Time slots */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-550">Available Slots</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            "10:00 AM",
+                            "11:30 AM",
+                            "2:00 PM",
+                            "3:30 PM"
+                          ].map((time) => (
+                            <button
+                              key={time}
+                              type="button"
+                              onClick={() => setSelectedTime(time)}
+                              className={`rounded-xl py-2 text-xs font-semibold border transition-all ${
+                                selectedTime === time
+                                  ? "bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-650/15"
+                                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-zinc-900/40 dark:border-zinc-850 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                              }`}
+                            >
+                              {time}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Booking Form Details */}
+                      <AnimatePresence initial={false}>
+                        {selectedTime && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="space-y-3.5 border-t border-slate-100 pt-4 dark:border-zinc-900 overflow-hidden"
+                          >
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="text-[9px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-500">Your Name</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="John Doe" 
+                                  value={bookingName}
+                                  onChange={(e) => setBookingName(e.target.value)}
+                                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/20"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] uppercase font-bold tracking-wider text-slate-400 dark:text-zinc-500">Email Address</label>
+                                <input 
+                                  type="email" 
+                                  placeholder="john@company.com" 
+                                  value={bookingEmail}
+                                  onChange={(e) => setBookingEmail(e.target.value)}
+                                  className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/20"
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <Button 
+                              onClick={() => {
+                                if (bookingName && bookingEmail) {
+                                  setBookingConfirmed(true);
+                                }
+                              }}
+                              className="w-full rounded-xl bg-indigo-650 py-2.5 text-white font-bold hover:bg-indigo-750 transition-colors shadow-md shadow-indigo-655/10 text-xs"
+                            >
+                              Confirm Booking for {selectedTime}
+                            </Button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="booking-success"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-5 py-4 text-center"
+                    >
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                        <Check className="size-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-800 dark:text-zinc-150">Booking Confirmed! 🎉</h4>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                          Invitation details sent to <span className="font-semibold text-slate-850 dark:text-white">{bookingEmail}</span>
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 text-left space-y-2 dark:border-zinc-900 dark:bg-zinc-950/20 text-xs leading-relaxed max-w-sm mx-auto">
+                        <div>
+                          <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Event</span>
+                          <span className="font-semibold text-slate-800 dark:text-zinc-200">LeadFlow Product Demo (30m)</span>
+                        </div>
+                        <div className="border-t border-slate-100 pt-2 dark:border-zinc-900/60">
+                          <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Date / Time</span>
+                          <span className="font-semibold text-slate-800 dark:text-zinc-200">{selectedDate}, 2026 at {selectedTime}</span>
+                        </div>
+                        <div className="border-t border-slate-100 pt-2 dark:border-zinc-900/60">
+                          <span className="font-bold text-slate-400 uppercase text-[9px] tracking-wide block">Video Conference Link</span>
+                          <span className="font-mono text-[10px] text-indigo-650 dark:text-indigo-400 block break-all font-semibold">
+                            meet.google.com/abc-defg-hij
+                          </span>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setBookingConfirmed(false);
+                          setSelectedTime(null);
+                          setBookingName("");
+                          setBookingEmail("");
+                        }}
+                        variant="outline"
+                        className="rounded-xl border-slate-200 text-xs text-slate-655 hover:bg-slate-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
+                      >
+                        Book Another Demo
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -973,43 +1166,80 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div 
+            className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.08
+                }
+              }
+            }}
+          >
             {/* Card 1 */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50">
-              <Shield className="size-6 text-indigo-600" />
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+              }}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50"
+            >
+              <Shield className="size-6 text-indigo-650 text-indigo-600" />
               <h3 className="mt-4 text-base font-bold">Postgres RLS Shield</h3>
               <p className="mt-2 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                 Row-Level Security (RLS) policies block cross-tenant read/write queries directly at the database engine level, enforcing organization boundaries.
               </p>
-            </div>
+            </motion.div>
 
             {/* Card 2 */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50">
-              <Database className="size-6 text-indigo-600" />
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+              }}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50"
+            >
+              <Database className="size-6 text-indigo-650 text-indigo-600" />
               <h3 className="mt-4 text-base font-bold">Private Storage Buckets</h3>
               <p className="mt-2 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                 Uploaded CSV lists are isolated in private storage vaults. Signed URL paths expire in 10 minutes to secure raw contact directories.
               </p>
-            </div>
+            </motion.div>
 
             {/* Card 3 */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50">
-              <Zap className="size-6 text-indigo-600" />
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+              }}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50"
+            >
+              <Zap className="size-6 text-indigo-655 text-indigo-600" />
               <h3 className="mt-4 text-base font-bold">Trigger.dev Workers</h3>
               <p className="mt-2 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                 All background tasks execute on durable workers with automatic retries. Your import pipelines won't fail due to browser thread terminations.
               </p>
-            </div>
+            </motion.div>
 
             {/* Card 4 */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50">
-              <UserCheck className="size-6 text-indigo-600" />
+            <motion.div 
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
+              }}
+              className="rounded-2xl border border-slate-200 bg-white p-6 text-left dark:border-zinc-900 dark:bg-zinc-950/50"
+            >
+              <UserCheck className="size-6 text-indigo-650 text-indigo-600" />
               <h3 className="mt-4 text-base font-bold">Dynamic AI Cap limits</h3>
               <p className="mt-2 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                 Prevent runaway API bills during mass CSV uploads. Limit billing limits per organization with automated notifications.
               </p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
@@ -1040,11 +1270,21 @@ export default function HomePage() {
                     <span>{faq.q}</span>
                     {isOpen ? <ChevronUp className="size-4 text-slate-500" /> : <ChevronDown className="size-4 text-slate-500" />}
                   </button>
-                  {isOpen && (
-                    <div className="px-6 pb-5 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed border-t border-slate-100 pt-3 dark:border-zinc-900/60">
-                      {faq.a}
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pb-5 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed border-t border-slate-100 pt-3 dark:border-zinc-900/60">
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )
             })}
@@ -1078,14 +1318,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
             
             {/* Column 1: Brand Info */}
-            <div className="lg:col-span-4 space-y-4">
+            <div className="lg:col-span-4 space-y-4 text-left">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-tr from-indigo-600 to-violet-500 text-white animate-pulse">
-                  <Layers className="size-4" />
-                </div>
-                <span className="text-base font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                  LeadFlow
-                </span>
+                <Logo iconSize={24} textSize="text-base" />
                 <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] font-bold text-indigo-650 dark:bg-indigo-950/40 dark:text-indigo-400">
                   BETA
                 </span>

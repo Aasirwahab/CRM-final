@@ -3,8 +3,9 @@
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Layers, Mail, ArrowLeft, CheckCircle, Lock, Key } from 'lucide-react'
+import { Mail, ArrowLeft, CheckCircle, Lock, Key } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/ui/logo'
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState('')
@@ -174,13 +175,8 @@ export default function ResetPasswordPage() {
 
         <div className="w-full max-w-sm space-y-8">
           <div className="flex items-center gap-2.5">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md">
-                <Layers className="size-4.5" />
-              </div>
-              <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 bg-clip-text text-transparent">
-                LeadFlow
-              </span>
+            <Link href="/">
+              <Logo iconSize={30} textSize="text-lg" />
             </Link>
           </div>
 
@@ -330,13 +326,8 @@ export default function ResetPasswordPage() {
 
       <div className="w-full max-w-sm space-y-8">
         <div className="flex items-center gap-2.5 justify-center">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-md">
-              <Layers className="size-4.5" />
-            </div>
-            <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-600 bg-clip-text text-transparent">
-              LeadFlow
-            </span>
+          <Link href="/">
+            <Logo iconSize={30} textSize="text-lg" />
           </Link>
         </div>
 
