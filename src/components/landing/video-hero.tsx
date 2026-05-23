@@ -25,8 +25,14 @@ const SKIP_TAIL_SECONDS = 0.55
 // reveals the flash.
 function VideoBackground() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
     const video = videoRef.current
     if (!video) return
 
@@ -58,7 +64,15 @@ function VideoBackground() {
       video.removeEventListener("timeupdate", onTimeUpdate)
       video.removeEventListener("canplay", tryPlay)
     }
-  }, [])
+  }, [isMounted])
+
+  // Render a matching placeholder div on the server to avoid layout shift,
+  // then swap in the real <video> after hydration so attributes never mismatch.
+  if (!isMounted) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-[1] h-full w-full bg-black" />
+    )
+  }
 
   return (
     <video
@@ -230,22 +244,22 @@ export function VideoHero() {
               </div>
 
               {/* Bottom row: CRM actions + counter */}
-              <div className="flex items-center justify-between px-1 pt-2.5">
-                <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 rounded-md bg-[#f8f8f8] px-2.5 py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-xs font-medium text-black/80 transition-colors hover:bg-white">
-                    <Upload className="size-3.5" />
+              <div className="flex items-center justify-between px-1 pt-2.5 gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <button className="flex items-center gap-1 sm:gap-1.5 rounded-md bg-[#f8f8f8] px-1.5 py-1 sm:px-2.5 sm:py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-[10px] sm:text-xs font-medium text-black/80 transition-colors hover:bg-white whitespace-nowrap">
+                    <Upload className="size-3 sm:size-3.5" />
                     Import CSV
                   </button>
-                  <button className="flex items-center gap-1.5 rounded-md bg-[#f8f8f8] px-2.5 py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-xs font-medium text-black/80 transition-colors hover:bg-white">
-                    <Sparkles className="size-3.5" />
+                  <button className="flex items-center gap-1 sm:gap-1.5 rounded-md bg-[#f8f8f8] px-1.5 py-1 sm:px-2.5 sm:py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-[10px] sm:text-xs font-medium text-black/80 transition-colors hover:bg-white whitespace-nowrap">
+                    <Sparkles className="size-3 sm:size-3.5" />
                     Enrich
                   </button>
-                  <button className="flex items-center gap-1.5 rounded-md bg-[#f8f8f8] px-2.5 py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-xs font-medium text-black/80 transition-colors hover:bg-white">
-                    <Send className="size-3.5" />
+                  <button className="flex items-center gap-1 sm:gap-1.5 rounded-md bg-[#f8f8f8] px-1.5 py-1 sm:px-2.5 sm:py-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-[10px] sm:text-xs font-medium text-black/80 transition-colors hover:bg-white whitespace-nowrap">
+                    <Send className="size-3 sm:size-3.5" />
                     Outreach
                   </button>
                 </div>
-                <span className="font-[family-name:var(--font-schibsted-grotesk)] text-xs text-white/70">
+                <span className="font-[family-name:var(--font-schibsted-grotesk)] text-[10px] sm:text-xs text-white/70 whitespace-nowrap">
                   0/3,000
                 </span>
               </div>
