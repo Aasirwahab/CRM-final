@@ -132,6 +132,15 @@
   --color-warning-foreground: var(--warning-foreground);
 }
 
+/* Landing brand palette — matches the video hero (neutral foundation, green accent). */
+@theme {
+  --color-brand: #5ae14c;
+  --color-brand-strong: #3fce32;
+  --color-ink: #0e1311;
+  --color-body: #505050;
+  --color-surface: #f8f8f8;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

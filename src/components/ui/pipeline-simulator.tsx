@@ -13,7 +13,6 @@ import {
   Layers,
   Sparkles
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 interface Particle {
   id: string
@@ -124,96 +123,96 @@ export function PipelineSimulator() {
   }
 
   return (
-    <div className="w-full space-y-6">
-      
+    <div className="w-full space-y-5 font-[family-name:var(--font-inter)]">
+
       {/* Node Graph Container */}
-      <div className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-zinc-900/60 dark:bg-zinc-950/30 overflow-hidden min-h-[300px] flex flex-col justify-between">
-        
+      <div className="relative rounded-2xl border border-black/8 bg-white p-6 shadow-sm overflow-hidden min-h-[300px] flex flex-col justify-between">
+
         {/* Animated connection lines (background) */}
         <div className="absolute inset-0 top-1/2 -translate-y-1/2 h-[4px] w-[80%] left-[10%] -z-10 overflow-hidden hidden sm:block">
           <svg className="w-full h-full" fill="none">
-            <line 
-              x1="0%" y1="50%" x2="100%" y2="50%" 
-              className="stroke-slate-200 dark:stroke-zinc-800 stroke-[3]"
+            <line
+              x1="0%" y1="50%" x2="100%" y2="50%"
+              className="stroke-black/10 stroke-[3]"
             />
-            <line 
-              x1="0%" y1="50%" x2="100%" y2="50%" 
-              className="stroke-indigo-500/40 dark:stroke-indigo-400/20 stroke-[3]"
+            <line
+              x1="0%" y1="50%" x2="100%" y2="50%"
+              className="stroke-[#5ae14c]/50 stroke-[3]"
               style={{ strokeDasharray: "15 30" }}
             />
           </svg>
         </div>
 
         {/* Header bar */}
-        <div className="flex items-center justify-between text-xs pb-3 border-b border-slate-100 dark:border-zinc-900">
-          <div className="flex items-center gap-1.5 font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
-            <Layers className="size-3.5 text-indigo-500" />
-            Live Ingestion Pipeline Simulator
+        <div className="flex items-center justify-between pb-3 border-b border-black/5">
+          <div className="flex items-center gap-1.5 font-[family-name:var(--font-schibsted-grotesk)] text-[11px] font-semibold uppercase tracking-[0.14em] text-black/40">
+            <Layers className="size-3.5 text-[#3fce32]" />
+            Live Ingestion Pipeline
           </div>
-          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-[#3fce32]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5ae14c] animate-pulse" />
             active
           </span>
         </div>
 
         {/* Nodes Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 py-8 relative">
-          
+
           {/* Node 1: CSV Ingestion Source */}
           <div className="flex flex-col items-center text-center space-y-3">
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 dark:bg-zinc-900/40 dark:border-zinc-850 dark:text-zinc-400 shadow-sm transition-transform hover:scale-105">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f8f8f8] border border-black/8 text-[#0e1311] shadow-sm transition-transform hover:scale-105">
               <Upload className="size-6" />
-              <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] text-white">
+              <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#5ae14c] text-[9px] text-[#0e1311]">
                 <Check className="size-2.5" />
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">1. Raw CSV Source</p>
-              <p className="text-[10px] text-slate-400 dark:text-zinc-500">Streaming import stream</p>
+              <p className="text-xs font-bold text-black">1. Raw CSV Source</p>
+              <p className="text-[10px] text-black/40">Streaming import stream</p>
             </div>
           </div>
 
           {/* Node 2: Trigram Deduplication */}
           <div className="flex flex-col items-center text-center space-y-3">
-            <motion.div 
+            <motion.div
               animate={activeNode === "dedupe" ? { scale: [1, 1.1, 1] } : {}}
               transition={{ duration: 0.4 }}
               className={`relative flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm transition-all duration-300 ${
-                activeNode === "dedupe" 
-                  ? "bg-indigo-50 border-indigo-300 text-indigo-650 dark:bg-indigo-950/40 dark:border-indigo-900/80 dark:text-indigo-400"
-                  : "bg-slate-50 border-slate-200 text-slate-600 dark:bg-zinc-900/40 dark:border-zinc-850 dark:text-zinc-400"
+                activeNode === "dedupe"
+                  ? "bg-[#5ae14c]/15 border-[#5ae14c]/50 text-[#0e1311]"
+                  : "bg-[#f8f8f8] border-black/8 text-[#0e1311]"
               }`}
             >
               <Shield className="size-6" />
               {activeNode === "dedupe" && (
-                <span className="absolute inset-0 rounded-2xl bg-indigo-500/10 animate-ping" />
+                <span className="absolute inset-0 rounded-2xl bg-[#5ae14c]/15 animate-ping" />
               )}
             </motion.div>
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">2. pg_trgm Deduplicator</p>
-              <p className="text-[10px] text-slate-400 dark:text-zinc-500">Fuzzy similarity check</p>
+              <p className="text-xs font-bold text-black">2. pg_trgm Deduplicator</p>
+              <p className="text-[10px] text-black/40">Fuzzy similarity check</p>
             </div>
           </div>
 
           {/* Node 3: Database & Router */}
           <div className="flex flex-col items-center text-center space-y-3">
-            <motion.div 
+            <motion.div
               animate={activeNode === "route" ? { scale: [1, 1.1, 1] } : {}}
               transition={{ duration: 0.4 }}
               className={`relative flex h-14 w-14 items-center justify-center rounded-2xl border shadow-sm transition-all duration-300 ${
-                activeNode === "route" 
-                  ? "bg-violet-50 border-violet-300 text-violet-650 dark:bg-violet-950/40 dark:border-violet-900/80 dark:text-violet-400"
-                  : "bg-slate-50 border-slate-200 text-slate-600 dark:bg-zinc-900/40 dark:border-zinc-850 dark:text-zinc-400"
+                activeNode === "route"
+                  ? "bg-[#0e1311]/5 border-[#0e1311]/30 text-[#0e1311]"
+                  : "bg-[#f8f8f8] border-black/8 text-[#0e1311]"
               }`}
             >
               <Database className="size-6" />
               {activeNode === "route" && (
-                <span className="absolute inset-0 rounded-2xl bg-violet-500/10 animate-ping" />
+                <span className="absolute inset-0 rounded-2xl bg-[#0e1311]/10 animate-ping" />
               )}
             </motion.div>
             <div>
-              <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">3. CRM Database</p>
-              <p className="text-[10px] text-slate-400 dark:text-zinc-500">Route by priority score</p>
+              <p className="text-xs font-bold text-black">3. CRM Database</p>
+              <p className="text-[10px] text-black/40">Route by priority score</p>
             </div>
           </div>
 
@@ -222,29 +221,28 @@ export function PipelineSimulator() {
             {particles.map((p) => {
               // Calculate particle positions based on stage
               let leftPos = "15%"
-              let colorClasses = "bg-slate-400 dark:bg-zinc-600"
-              let icon = null
-              
+              let colorClasses = "bg-black/40"
+
               if (p.stage === "ingest") {
                 leftPos = "15%"
               } else if (p.stage === "dedupe") {
                 leftPos = "50%"
-                colorClasses = p.isDuplicate ? "bg-indigo-600 ring-4 ring-indigo-500/20" : "bg-indigo-550"
+                colorClasses = p.isDuplicate ? "bg-[#0e1311] ring-4 ring-[#0e1311]/15" : "bg-[#5ae14c]"
               } else if (p.stage === "route") {
                 leftPos = "83%"
-                colorClasses = "bg-violet-600"
+                colorClasses = "bg-[#0e1311]"
               } else if (p.stage === "done") {
                 leftPos = "83%"
                 const isHot = p.score && p.score >= 85
                 const isWarm = p.score && p.score >= 70
-                colorClasses = isHot 
-                  ? "bg-rose-500 shadow-rose-500/30 shadow-lg" 
-                  : isWarm 
-                    ? "bg-amber-500 shadow-amber-500/30 shadow-lg" 
-                    : "bg-blue-500 shadow-blue-500/30 shadow-lg"
+                colorClasses = isHot
+                  ? "bg-[#5ae14c] shadow-[#5ae14c]/40 shadow-lg"
+                  : isWarm
+                    ? "bg-amber-500 shadow-amber-500/30 shadow-lg"
+                    : "bg-black/40 shadow-black/20 shadow-lg"
               } else if (p.stage === "dropped") {
                 leftPos = "50%"
-                colorClasses = "bg-rose-500 animate-shake"
+                colorClasses = "bg-[#0e1311] animate-shake"
               }
 
               return (
@@ -253,23 +251,23 @@ export function PipelineSimulator() {
                   layoutId={p.id}
                   className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5 pointer-events-none hidden sm:flex`}
                   initial={{ left: "15%", opacity: 0, scale: 0.6 }}
-                  animate={{ 
-                    left: leftPos, 
+                  animate={{
+                    left: leftPos,
                     opacity: p.stage === "dropped" ? [1, 1, 0] : 1,
                     scale: p.stage === "dropped" ? [1, 1.1, 0] : 1
                   }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ 
+                  transition={{
                     left: { type: "spring", stiffness: 70, damping: 14 },
                     scale: { type: "tween", ease: "easeInOut", duration: 0.5 },
                     opacity: { type: "tween", ease: "easeInOut", duration: 0.5 }
                   }}
                 >
-                  <div className={`h-4 w-4 rounded-full ${colorClasses} border-2 border-white dark:border-zinc-950 flex items-center justify-center`}>
+                  <div className={`h-4 w-4 rounded-full ${colorClasses} border-2 border-white flex items-center justify-center`}>
                     {p.stage === "dropped" && <Trash2 className="size-2 text-white" />}
-                    {p.stage === "done" && <Sparkles className="size-2 text-white" />}
+                    {p.stage === "done" && <Sparkles className="size-2 text-[#0e1311]" />}
                   </div>
-                  <span className="rounded-full bg-slate-800/90 dark:bg-zinc-900/90 border border-slate-700 px-2 py-0.5 text-[8px] font-bold text-white shadow-md font-mono whitespace-nowrap">
+                  <span className="rounded-full bg-[#0e1311] px-2 py-0.5 text-[8px] font-bold text-white shadow-md font-mono whitespace-nowrap">
                     {p.label}
                     {p.score ? ` (${p.score})` : ""}
                   </span>
@@ -280,18 +278,18 @@ export function PipelineSimulator() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4 border-t border-slate-100 dark:border-zinc-900/60 pt-4 text-left">
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-            <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wide block">Leads Enriched</span>
-            <span className="text-sm font-extrabold font-mono text-slate-800 dark:text-zinc-200">{stats.enriched.toLocaleString()}</span>
+        <div className="grid grid-cols-3 gap-4 border-t border-black/5 pt-4 text-left">
+          <div className="p-2.5 rounded-xl bg-[#f8f8f8] border border-black/5">
+            <span className="text-[9px] uppercase font-bold text-black/40 tracking-wide block">Leads Enriched</span>
+            <span className="text-sm font-extrabold font-mono text-black">{stats.enriched.toLocaleString()}</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-            <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wide block">Duplicates Skipped</span>
-            <span className="text-sm font-extrabold font-mono text-indigo-600 dark:text-indigo-400">{stats.duplicates}</span>
+          <div className="p-2.5 rounded-xl bg-[#f8f8f8] border border-black/5">
+            <span className="text-[9px] uppercase font-bold text-black/40 tracking-wide block">Duplicates Skipped</span>
+            <span className="text-sm font-extrabold font-mono text-[#0e1311]">{stats.duplicates}</span>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 dark:bg-zinc-900/20 dark:border-zinc-850">
-            <span className="text-[9px] uppercase font-bold text-slate-400 dark:text-zinc-500 tracking-wide block">Accuracy Lift</span>
-            <span className="text-sm font-extrabold font-mono text-emerald-600 dark:text-emerald-450">99.8%</span>
+          <div className="p-2.5 rounded-xl bg-[#f8f8f8] border border-black/5">
+            <span className="text-[9px] uppercase font-bold text-black/40 tracking-wide block">Accuracy Lift</span>
+            <span className="text-sm font-extrabold font-mono text-[#3fce32]">99.8%</span>
           </div>
         </div>
       </div>
@@ -299,16 +297,16 @@ export function PipelineSimulator() {
       {/* Control Console */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Terminal/Logs block */}
-        <div className="rounded-xl border border-slate-200 bg-[#0f0b1a] p-4 text-left font-mono text-[10px] text-zinc-300 min-h-[140px] flex flex-col justify-between">
-          <div className="flex items-center justify-between text-zinc-500 border-b border-zinc-900 pb-1.5 mb-2">
-            <span>PIPELINE LOGS</span>
-            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+        <div className="rounded-xl border border-black/10 bg-[#0e1311] p-4 text-left font-mono text-[10px] text-white/60 min-h-[140px] flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between text-white/35 border-b border-white/10 pb-1.5 mb-2">
+            <span className="font-[family-name:var(--font-schibsted-grotesk)] text-[10px] font-semibold uppercase tracking-[0.12em]">Pipeline Logs</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-[#5ae14c] animate-pulse" />
           </div>
           <div className="flex-1 space-y-1.5 overflow-hidden">
             {logs.map((log, i) => (
-              <div 
-                key={i} 
-                className={`truncate ${i === 0 ? "text-indigo-400 font-semibold" : "opacity-60"}`}
+              <div
+                key={i}
+                className={`truncate ${i === 0 ? "text-[#5ae14c] font-semibold" : "opacity-50"}`}
               >
                 {log}
               </div>
@@ -317,32 +315,31 @@ export function PipelineSimulator() {
         </div>
 
         {/* Quick Ingest Console */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-zinc-900 dark:bg-zinc-950/30 flex flex-col justify-between text-left">
+        <div className="rounded-xl border border-black/10 bg-white p-4 flex flex-col justify-between text-left shadow-sm">
           <div>
-            <h4 className="text-xs font-bold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
-              <PlusCircle className="size-4 text-indigo-600" />
+            <h4 className="text-xs font-bold text-black flex items-center gap-1.5 font-[family-name:var(--font-fustat)]">
+              <PlusCircle className="size-4 text-[#3fce32]" />
               Manual Pipeline Ingestion
             </h4>
-            <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-1">
+            <p className="text-[10px] text-black/50 mt-1 leading-relaxed">
               Test row validations, fuzzy check matching, and priority scoring in real time.
             </p>
           </div>
 
-          <form onSubmit={handleCustomIngest} className="flex gap-2 mt-4">
-            <input 
+          <form onSubmit={handleCustomIngest} className="flex gap-2 mt-4 min-w-0">
+            <input
               name="domain"
-              type="text" 
-              placeholder="e.g. spacex.com" 
+              type="text"
+              placeholder="e.g. spacex.com"
               required
-              className="flex-1 rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-zinc-800 dark:bg-zinc-900/20"
+              className="min-w-0 flex-1 rounded-lg border border-black/10 bg-[#f8f8f8] px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#5ae14c]"
             />
-            <Button 
-              type="submit" 
-              size="sm" 
-              className="rounded-lg bg-indigo-600 text-[11px] font-bold text-white hover:bg-indigo-700"
+            <button
+              type="submit"
+              className="shrink-0 rounded-lg bg-[#0e1311] px-3 py-2 text-[11px] font-bold text-white hover:bg-black transition-colors"
             >
               Ingest
-            </Button>
+            </button>
           </form>
         </div>
       </div>
