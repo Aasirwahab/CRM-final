@@ -3,14 +3,21 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getTasks, createTask, updateTaskStatus, type TaskRow } from './actions'
 import { Plus, CheckCircle2, Circle, Clock, XCircle, AlertTriangle } from 'lucide-react'
 
-const PRIORITY_STYLES: Record<string, string> = {
-  urgent: 'bg-red-50 text-red-600 ring-red-500/20 dark:bg-red-950/40 dark:text-red-400',
-  high: 'bg-orange-50 text-orange-600 ring-orange-500/20 dark:bg-orange-950/40 dark:text-orange-400',
-  medium: 'bg-amber-50 text-amber-600 ring-amber-500/20 dark:bg-amber-950/40 dark:text-amber-400',
-  low: 'bg-gray-50 text-gray-600 ring-gray-500/20 dark:bg-gray-800 dark:text-gray-400',
+type BadgeTone = React.ComponentProps<typeof Badge>['tone']
+
+const PRIORITY_TONE: Record<string, BadgeTone> = {
+  urgent: 'red',
+  high: 'orange',
+  medium: 'amber',
+  low: 'neutral',
 }
 
 const STATUS_ICONS: Record<string, typeof Circle> = {
@@ -83,37 +90,35 @@ export default function TasksPage() {
 
       {/* New task form */}
       {showForm && (
-        <div className="rounded-xl border bg-card p-5 space-y-3">
-          <input
+        <Card className="space-y-3 p-5">
+          <Input
             type="text"
             placeholder="Task title..."
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             autoFocus
           />
           <div className="flex gap-3">
-            <select
+            <Select
               value={newPriority}
               onChange={e => setNewPriority(e.target.value)}
-              className="h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
-            </select>
-            <input
+            </Select>
+            <Input
               type="datetime-local"
               value={newDue}
               onChange={e => setNewDue(e.target.value)}
-              className="h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+              className="w-auto"
             />
             <Button onClick={handleCreate} disabled={!newTitle.trim() || saving}>
               {saving ? 'Creating...' : 'Create'}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Filters */}
@@ -135,8 +140,15 @@ export default function TasksPage() {
 
       {/* Task list */}
       {loading ? (
-        <div className="flex h-32 items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="flex items-center gap-3 p-4">
+              <Skeleton className="h-5 w-5 shrink-0 rounded-full" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="ml-auto h-5 w-14 rounded-full" />
+              <Skeleton className="h-7 w-24 rounded-lg" />
+            </Card>
+          ))}
         </div>
       ) : tasks.length === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center">
@@ -191,24 +203,22 @@ export default function TasksPage() {
                       </span>
                     )}
                     {task.title.startsWith('Follow up:') && (
-                      <span className="badge bg-purple-50 text-purple-600 ring-purple-500/20 dark:bg-purple-950/40 dark:text-purple-400">
-                        Auto
-                      </span>
+                      <Badge tone="purple">Auto</Badge>
                     )}
                   </div>
                 </div>
-                <span className={`badge capitalize ${PRIORITY_STYLES[task.priority] ?? ''}`}>
+                <Badge tone={PRIORITY_TONE[task.priority]} className="capitalize">
                   {task.priority}
-                </span>
-                <select
+                </Badge>
+                <Select
                   value={task.status}
                   onChange={e => handleStatusChange(task.id, e.target.value)}
-                  className="h-7 rounded-lg border bg-background px-2 text-xs text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  className="h-7 px-2 text-xs capitalize"
                 >
                   {STATUS_OPTIONS.map(s => (
                     <option key={s} value={s}>{s.replace('_', ' ')}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             )
           })}

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { getLeadDetail, updateLeadStatus, addNote, addReply } from './actions'
 import { runAIResearch } from './ai-actions'
 import { softDeleteLead } from '../../trash/actions'
+import { useConfirm } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/components/ui/toast'
 import Link from 'next/link'
 
 const QUALITY_STYLES: Record<string, string> = {
@@ -36,6 +38,8 @@ const ACTION_LABELS: Record<string, string> = {
 export default function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const confirm = useConfirm()
+  const { toast } = useToast()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [noteText, setNoteText] = useState('')
@@ -130,10 +134,20 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
             size="sm"
             className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
             onClick={async () => {
-              if (confirm('Move this lead to trash?')) {
-                await softDeleteLead(id)
-                router.push('/leads')
+              const ok = await confirm({
+                title: 'Move lead to trash?',
+                description: 'You can restore it from Trash later.',
+                confirmLabel: 'Move to trash',
+                variant: 'danger',
+              })
+              if (!ok) return
+              const result = await softDeleteLead(id)
+              if (result && 'error' in result && result.error) {
+                toast({ variant: 'error', title: 'Could not delete', description: String(result.error) })
+                return
               }
+              toast({ variant: 'success', title: 'Moved to trash' })
+              router.push('/leads')
             }}
           >
             Delete

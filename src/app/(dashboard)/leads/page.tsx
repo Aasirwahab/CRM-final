@@ -6,21 +6,28 @@ import { Button } from '@/components/ui/button'
 import { getLeads, getLeadMetrics, exportLeadsCSV, inlineUpdateLead, type LeadRow } from './actions'
 import Link from 'next/link'
 import { Search, Download, Upload, ArrowUpDown, UserPlus, Target, Flame, BarChart3 } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 
-const QUALITY_STYLES: Record<string, string> = {
-  hot: 'bg-red-50 text-red-600 ring-red-500/20 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-400/20',
-  warm: 'bg-orange-50 text-orange-600 ring-orange-500/20 dark:bg-orange-950/40 dark:text-orange-400 dark:ring-orange-400/20',
-  cold: 'bg-indigo-50 text-indigo-600 ring-indigo-500/20 dark:bg-indigo-950/40 dark:text-indigo-400 dark:ring-indigo-400/20',
+type BadgeTone = React.ComponentProps<typeof Badge>['tone']
+
+const QUALITY_TONE: Record<string, BadgeTone> = {
+  hot: 'red',
+  warm: 'orange',
+  cold: 'indigo',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-600 ring-blue-500/20 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/20',
-  contacted: 'bg-purple-50 text-purple-600 ring-purple-500/20 dark:bg-purple-950/40 dark:text-purple-400 dark:ring-purple-400/20',
-  qualified: 'bg-emerald-50 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-400/20',
-  unqualified: 'bg-gray-50 text-gray-600 ring-gray-500/20 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-400/20',
-  nurture: 'bg-amber-50 text-amber-600 ring-amber-500/20 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-400/20',
-  converted: 'bg-emerald-50 text-emerald-700 ring-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-400/20',
-  lost: 'bg-red-50 text-red-600 ring-red-500/20 dark:bg-red-950/40 dark:text-red-400 dark:ring-red-400/20',
+const STATUS_TONE: Record<string, BadgeTone> = {
+  new: 'blue',
+  contacted: 'purple',
+  qualified: 'emerald',
+  unqualified: 'neutral',
+  nurture: 'amber',
+  converted: 'emerald',
+  lost: 'red',
 }
 
 const FILTER_TABS = [
@@ -37,6 +44,7 @@ const PAGE_SIZE = 25
 
 export default function LeadsPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [leads, setLeads] = useState<LeadRow[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
@@ -141,24 +149,41 @@ export default function LeadsPage() {
             disabled={exporting || total === 0}
             onClick={async () => {
               setExporting(true)
-              const result = await exportLeadsCSV({
-                search: search || undefined,
-                status: statusFilter || undefined,
-                quality: qualityFilter || undefined,
-              })
-              if (result.csv) {
-                if (result.capped) {
-                  alert(`Export capped at ${result.count.toLocaleString()} of ${result.total.toLocaleString()} leads. Apply filters to narrow results.`)
+              try {
+                const result = await exportLeadsCSV({
+                  search: search || undefined,
+                  status: statusFilter || undefined,
+                  quality: qualityFilter || undefined,
+                })
+                if (result.csv) {
+                  const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `leadflow-export-${new Date().toISOString().slice(0, 10)}.csv`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                  if (result.capped) {
+                    toast({
+                      variant: 'info',
+                      title: 'Export capped',
+                      description: `Exported ${result.count.toLocaleString()} of ${result.total.toLocaleString()} leads. Apply filters to narrow results.`,
+                    })
+                  } else {
+                    toast({
+                      variant: 'success',
+                      title: 'Export ready',
+                      description: `${result.count.toLocaleString()} leads downloaded.`,
+                    })
+                  }
+                } else {
+                  toast({ variant: 'error', title: 'Export failed', description: 'No data was returned.' })
                 }
-                const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = `leadflow-export-${new Date().toISOString().slice(0, 10)}.csv`
-                a.click()
-                URL.revokeObjectURL(url)
+              } catch {
+                toast({ variant: 'error', title: 'Export failed', description: 'Something went wrong. Please try again.' })
+              } finally {
+                setExporting(false)
               }
-              setExporting(false)
             }}
           >
             <Download className="size-4" data-icon="inline-start" />
@@ -218,25 +243,24 @@ export default function LeadsPage() {
         {/* Search + quality filter */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/50" />
-            <input
+            <Search className="absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground/50" />
+            <Input
               type="text"
               placeholder="Search by company, contact, or email..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              className="h-9 w-72 rounded-lg border bg-card pl-9 pr-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
+              className="w-72 pl-9"
             />
           </div>
-          <select
+          <Select
             value={qualityFilter}
             onChange={e => { setQualityFilter(e.target.value); setPage(0) }}
-            className="h-9 rounded-lg border bg-card px-3 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
           >
             <option value="">All Quality</option>
             <option value="hot">Hot</option>
             <option value="warm">Warm</option>
             <option value="cold">Cold</option>
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -276,11 +300,25 @@ export default function LeadsPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={7} className="px-5 py-16 text-center text-muted-foreground">
-                  <div className="mx-auto h-6 w-6 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
-                </td>
-              </tr>
+              Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b last:border-0">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3.5 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5"><Skeleton className="h-3.5 w-40" /></td>
+                  <td className="px-5 py-3.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-5 py-3.5"><Skeleton className="h-5 w-14 rounded-full" /></td>
+                  <td className="px-5 py-3.5"><Skeleton className="ml-auto h-2 w-24" /></td>
+                  <td className="px-5 py-3.5"><Skeleton className="h-3.5 w-16" /></td>
+                  <td className="px-5 py-3.5"><Skeleton className="h-3.5 w-20" /></td>
+                </tr>
+              ))
             ) : leads.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-5 py-16 text-center text-muted-foreground">
@@ -290,9 +328,24 @@ export default function LeadsPage() {
                 </td>
               </tr>
             ) : (
-              leads.map(lead => (
-                <tr key={lead.id} className="border-b last:border-0 transition-colors hover:bg-muted/20">
-                  <td className="px-5 py-3.5 cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
+              leads.map(lead => {
+                const leadLabel = lead.company_name || lead.contact_name || 'lead'
+                return (
+                <tr
+                  key={lead.id}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open ${leadLabel}`}
+                  onClick={() => router.push(`/leads/${lead.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      router.push(`/leads/${lead.id}`)
+                    }
+                  }}
+                  className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/20 focus:outline-none focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40"
+                >
+                  <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                         {(lead.company_name || lead.contact_name || '?')[0]?.toUpperCase()}
@@ -307,72 +360,85 @@ export default function LeadsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
+                  <td className="px-5 py-3.5 text-muted-foreground">
                     {lead.contact_email ?? '—'}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                     {editingCell?.id === lead.id && editingCell?.field === 'status' ? (
-                      <select
+                      <Select
                         autoFocus
                         defaultValue={lead.status}
-                        className="h-7 rounded-md border bg-background px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring/30"
+                        className="h-7 px-1.5 text-xs"
                         onChange={async (e) => {
                           const newVal = e.target.value
+                          const prevVal = lead.status
                           setEditingCell(null)
                           setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: newVal } : l))
-                          await inlineUpdateLead(lead.id, 'status', newVal)
+                          const res = await inlineUpdateLead(lead.id, 'status', newVal)
+                          if (res.error) {
+                            setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: prevVal } : l))
+                            toast({ variant: 'error', title: 'Could not update status', description: res.error })
+                          }
                         }}
                         onBlur={() => setEditingCell(null)}
                       >
                         {['new','contacted','qualified','unqualified','nurture','converted','lost'].map(s => (
                           <option key={s} value={s}>{s}</option>
                         ))}
-                      </select>
+                      </Select>
                     ) : (
-                      <span
-                        className={`badge cursor-pointer capitalize hover:opacity-80 ${STATUS_STYLES[lead.status] ?? ''}`}
+                      <Badge
+                        tone={STATUS_TONE[lead.status]}
+                        className="cursor-pointer capitalize hover:opacity-80"
                         onClick={(e) => { e.stopPropagation(); setEditingCell({ id: lead.id, field: 'status' }) }}
                       >
                         {lead.status}
-                      </span>
+                      </Badge>
                     )}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                     {editingCell?.id === lead.id && editingCell?.field === 'quality' ? (
-                      <select
+                      <Select
                         autoFocus
                         defaultValue={lead.lead_quality}
-                        className="h-7 rounded-md border bg-background px-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring/30"
+                        className="h-7 px-1.5 text-xs"
                         onChange={async (e) => {
                           const newVal = e.target.value
+                          const prevVal = lead.lead_quality
                           setEditingCell(null)
                           setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_quality: newVal } : l))
-                          await inlineUpdateLead(lead.id, 'lead_quality', newVal)
+                          const res = await inlineUpdateLead(lead.id, 'lead_quality', newVal)
+                          if (res.error) {
+                            setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_quality: prevVal } : l))
+                            toast({ variant: 'error', title: 'Could not update quality', description: res.error })
+                          }
                         }}
                         onBlur={() => setEditingCell(null)}
                       >
                         {['hot','warm','cold'].map(q => (
                           <option key={q} value={q}>{q}</option>
                         ))}
-                      </select>
+                      </Select>
                     ) : (
-                      <span
-                        className={`badge cursor-pointer capitalize hover:opacity-80 ${QUALITY_STYLES[lead.lead_quality] ?? ''}`}
+                      <Badge
+                        tone={QUALITY_TONE[lead.lead_quality]}
+                        className="cursor-pointer capitalize hover:opacity-80"
                         onClick={(e) => { e.stopPropagation(); setEditingCell({ id: lead.id, field: 'quality' }) }}
                       >
                         {lead.lead_quality}
-                      </span>
+                      </Badge>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-right cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
+                  <td className="px-5 py-3.5 text-right">
                     <ScoreBar score={lead.lead_score} />
                   </td>
-                  <td className="px-5 py-3.5 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>{lead.source ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-muted-foreground cursor-pointer" onClick={() => router.push(`/leads/${lead.id}`)}>
+                  <td className="px-5 py-3.5 text-muted-foreground">{lead.source ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-muted-foreground">
                     {new Date(lead.created_at).toLocaleDateString()}
                   </td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>

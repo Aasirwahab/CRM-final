@@ -7,6 +7,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid,
 } from 'recharts'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Users, Sparkles, Upload, TrendingUp, Flame, Target, DollarSign,
   UserPlus, CircleCheckBig, Clock, CalendarDays, CheckSquare, ArrowUpRight,
@@ -70,11 +71,7 @@ export default function DashboardPage() {
   }, [])
 
   if (!stats) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   const topMetrics = [
@@ -257,16 +254,16 @@ export default function DashboardPage() {
                         <stop offset="100%" stopColor="#22c55e" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis
                       dataKey="date"
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       tickLine={false}
                       axisLine={false}
                       interval="preserveStartEnd"
                     />
                     <YAxis
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                       tickLine={false}
                       axisLine={false}
                       allowDecimals={false}
@@ -383,7 +380,7 @@ export default function DashboardPage() {
                           outerRadius={85}
                           innerRadius={58}
                           strokeWidth={3}
-                          stroke="hsl(var(--card))"
+                          stroke="var(--card)"
                           paddingAngle={3}
                         >
                           {stats.qualityBreakdown.map((entry) => (
@@ -452,6 +449,50 @@ export default function DashboardPage() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-4 w-80" />
+      </div>
+
+      {/* Primary metric cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl border bg-card p-5">
+            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="mt-4 h-7 w-20" />
+            <Skeleton className="mt-2 h-3 w-24" />
+            <Skeleton className="mt-2 h-3 w-16" />
+          </div>
+        ))}
+      </div>
+
+      {/* Secondary metrics */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-xl border bg-card px-5 py-4">
+            <Skeleton className="h-5 w-5 rounded" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-5 w-12" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="rounded-xl border bg-card p-5">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="mt-1.5 h-3 w-56" />
+        <Skeleton className="mt-5 h-[280px] w-full rounded-lg" />
+      </div>
     </div>
   )
 }

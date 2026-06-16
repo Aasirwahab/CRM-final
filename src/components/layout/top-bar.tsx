@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Bell, LogOut, ChevronRight, User } from 'lucide-react'
+import { Search, Bell, LogOut, ChevronRight, User, Menu } from 'lucide-react'
+import { ThemeToggle } from '@/components/theme/theme-toggle'
+import { OPEN_COMMAND_PALETTE_EVENT } from '@/components/layout/command-palette'
 
 type Org = { id: string; name: string; slug: string; role: string }
 type Profile = { id: string; fullName: string | null; avatarUrl: string | null }
@@ -29,13 +31,17 @@ export function TopBar({
   profile,
   orgs,
   activeOrgId,
+  onMenuClick,
 }: {
   profile: Profile
   orgs: Org[]
   activeOrgId: string
+  onMenuClick?: () => void
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
@@ -44,6 +50,9 @@ export function TopBar({
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false)
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -70,9 +79,18 @@ export function TopBar({
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card/80 px-5 backdrop-blur-sm">
+    <header className="relative z-30 flex h-14 shrink-0 items-center justify-between border-b bg-card/80 px-5 backdrop-blur-sm">
+      {/* Mobile menu button */}
+      <button
+        onClick={onMenuClick}
+        aria-label="Open navigation"
+        className="-ml-1 mr-1 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+      >
+        <Menu className="size-5" />
+      </button>
+
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm">
+      <nav className="flex flex-1 items-center gap-1 text-sm">
         {breadcrumbs.map((crumb, i) => (
           <div key={crumb.href} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground/50" />}
@@ -95,7 +113,10 @@ export function TopBar({
       {/* Right side */}
       <div className="flex items-center gap-2">
         {/* Quick search */}
-        <button className="flex h-8 items-center gap-2 rounded-lg border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))}
+          className="flex h-8 items-center gap-2 rounded-lg border bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+        >
           <Search className="size-3.5" />
           <span className="hidden sm:inline">Search</span>
           <kbd className="ml-2 hidden rounded bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/60 sm:inline">
@@ -103,10 +124,34 @@ export function TopBar({
           </kbd>
         </button>
 
+        {/* Theme toggle */}
+        <ThemeToggle />
+
         {/* Notifications */}
-        <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-          <Bell className="size-4" />
-        </button>
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => setNotifOpen((o) => !o)}
+            aria-label="Notifications"
+            aria-haspopup="menu"
+            aria-expanded={notifOpen}
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Bell className="size-4" />
+          </button>
+
+          {notifOpen && (
+            <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border bg-popover p-1.5 shadow-xl">
+              <div className="border-b px-3 py-2.5">
+                <p className="text-sm font-medium">Notifications</p>
+              </div>
+              <div className="flex flex-col items-center gap-1.5 px-3 py-8 text-center">
+                <Bell className="size-6 text-muted-foreground/40" />
+                <p className="text-sm font-medium">You&apos;re all caught up</p>
+                <p className="text-xs text-muted-foreground">No new notifications right now.</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User menu */}
         <div className="relative" ref={menuRef}>

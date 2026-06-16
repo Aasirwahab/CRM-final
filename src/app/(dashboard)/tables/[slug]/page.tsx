@@ -45,6 +45,7 @@ import {
   Upload,
   FileSpreadsheet,
 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const FIELD_TYPE_META: Record<string, { label: string; icon: typeof Type }> = {
   text: { label: 'Text', icon: Type },
@@ -69,6 +70,7 @@ type FilterConfig = { colKey: string; operator: string; value: string } | null
 export default function TableDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
   const router = useRouter()
+  const confirm = useConfirm()
 
   // All tables (for tabs)
   const [allTables, setAllTables] = useState<CustomTableRow[]>([])
@@ -247,7 +249,13 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
   }
 
   async function handleArchiveColumn(columnId: string) {
-    if (!confirm('Archive this column? Data is preserved.')) return
+    const ok = await confirm({
+      title: 'Archive this column?',
+      description: 'Data is preserved and the column can be restored later.',
+      confirmLabel: 'Archive',
+      variant: 'danger',
+    })
+    if (!ok) return
     setColMenu(null)
     await archiveColumn(columnId)
     await loadTable(); await loadRows()
@@ -255,7 +263,12 @@ export default function TableDetailPage({ params }: { params: Promise<{ slug: st
 
   async function handleArchiveRow(e: React.MouseEvent, rowId: string) {
     e.stopPropagation()
-    if (!confirm('Archive this row?')) return
+    const ok = await confirm({
+      title: 'Archive this row?',
+      confirmLabel: 'Archive',
+      variant: 'danger',
+    })
+    if (!ok) return
     await archiveRow(rowId); await loadRows()
   }
 

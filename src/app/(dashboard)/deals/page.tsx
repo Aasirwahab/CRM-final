@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useConfirm } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/components/ui/toast'
 import { getDeals, createDeal, updateDeal, deleteDeal, type DealRow } from './actions'
 import { Plus, DollarSign, Pencil, Trash2, X } from 'lucide-react'
 
@@ -12,13 +19,17 @@ const STAGE_LABELS: Record<string, string> = {
   won: 'Won', lost: 'Lost', nurture: 'Nurture',
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-blue-50 text-blue-600 ring-blue-500/20 dark:bg-blue-950/40 dark:text-blue-400',
-  won: 'bg-emerald-50 text-emerald-600 ring-emerald-500/20 dark:bg-emerald-950/40 dark:text-emerald-400',
-  lost: 'bg-red-50 text-red-600 ring-red-500/20 dark:bg-red-950/40 dark:text-red-400',
+type BadgeTone = React.ComponentProps<typeof Badge>['tone']
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+  open: 'blue',
+  won: 'emerald',
+  lost: 'red',
 }
 
 export default function DealsPage() {
+  const confirm = useConfirm()
+  const { toast } = useToast()
   const [deals, setDeals] = useState<DealRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
@@ -34,9 +45,6 @@ export default function DealsPage() {
   const [editStatus, setEditStatus] = useState('')
   const [editClose, setEditClose] = useState('')
   const [editSaving, setEditSaving] = useState(false)
-
-  const [deleteConfirm, setDeleteConfirm] = useState<DealRow | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -85,12 +93,16 @@ export default function DealsPage() {
     await load()
   }
 
-  async function handleDelete() {
-    if (!deleteConfirm) return
-    setDeleting(true)
-    await deleteDeal(deleteConfirm.id)
-    setDeleting(false)
-    setDeleteConfirm(null)
+  async function handleDelete(deal: DealRow) {
+    const ok = await confirm({
+      title: 'Delete deal?',
+      description: `“${deal.title}” will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    })
+    if (!ok) return
+    await deleteDeal(deal.id)
+    toast({ variant: 'success', title: 'Deal deleted' })
     await load()
   }
 
@@ -112,37 +124,36 @@ export default function DealsPage() {
       </div>
 
       {showForm && (
-        <div className="rounded-xl border bg-card p-5 space-y-3">
-          <input
+        <Card className="space-y-3 p-5">
+          <Input
             type="text"
             placeholder="Deal title..."
             value={newTitle}
             onChange={e => setNewTitle(e.target.value)}
-            className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
             autoFocus
           />
           <div className="flex gap-3">
             <div className="relative">
-              <DollarSign className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
-              <input
+              <DollarSign className="absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+              <Input
                 type="number"
                 placeholder="Value"
                 value={newValue}
                 onChange={e => setNewValue(e.target.value)}
-                className="h-9 w-32 rounded-lg border bg-background pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                className="w-32 pl-7"
               />
             </div>
-            <input
+            <Input
               type="date"
               value={newClose}
               onChange={e => setNewClose(e.target.value)}
-              className="h-9 rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+              className="w-auto"
             />
             <Button onClick={handleCreate} disabled={!newTitle.trim() || saving}>
               {saving ? 'Creating...' : 'Create'}
             </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Filters */}
@@ -164,9 +175,16 @@ export default function DealsPage() {
 
       {/* Deals table */}
       {loading ? (
-        <div className="flex h-32 items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-primary/30 border-t-primary" />
-        </div>
+        <Card className="divide-y overflow-hidden">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+              <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="ml-auto h-4 w-20" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+          ))}
+        </Card>
       ) : deals.length === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -212,9 +230,9 @@ export default function DealsPage() {
                     {deal.value != null ? `$${Number(deal.value).toLocaleString()}` : '—'}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`badge capitalize ${STATUS_STYLES[deal.status] ?? ''}`}>
+                    <Badge tone={STATUS_TONE[deal.status]} className="capitalize">
                       {deal.status}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-5 py-3.5 text-muted-foreground">
                     {deal.expected_close_date ? new Date(deal.expected_close_date).toLocaleDateString() : '—'}
@@ -229,7 +247,7 @@ export default function DealsPage() {
                         <Pencil className="size-3.5" />
                       </button>
                       <button
-                        onClick={() => setDeleteConfirm(deal)}
+                        onClick={() => handleDelete(deal)}
                         className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                         title="Delete deal"
                       >
@@ -258,46 +276,44 @@ export default function DealsPage() {
             <div className="mt-5 space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Title</label>
-                <input
+                <Input
                   type="text"
                   value={editTitle}
                   onChange={e => setEditTitle(e.target.value)}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                   autoFocus
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Value ($)</label>
                 <div className="relative">
-                  <DollarSign className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
-                  <input
+                  <DollarSign className="absolute left-2.5 top-1/2 z-10 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                  <Input
                     type="number"
                     placeholder="e.g. 50000"
                     value={editValue}
                     onChange={e => setEditValue(e.target.value)}
-                    className="h-9 w-full rounded-lg border bg-background pl-7 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                    className="pl-7"
                   />
                 </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-                <select
+                <Select
                   value={editStatus}
                   onChange={e => setEditStatus(e.target.value)}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  className="w-full"
                 >
                   <option value="open">Open</option>
                   <option value="won">Won</option>
                   <option value="lost">Lost</option>
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">Expected Close Date</label>
-                <input
+                <Input
                   type="date"
                   value={editClose}
                   onChange={e => setEditClose(e.target.value)}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
                 />
               </div>
             </div>
@@ -314,25 +330,6 @@ export default function DealsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDeleteConfirm(null)}>
-          <div className="w-full max-w-sm rounded-xl border bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold">Delete Deal</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to delete <strong>{deleteConfirm.title}</strong>? This action cannot be undone.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)} disabled={deleting}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

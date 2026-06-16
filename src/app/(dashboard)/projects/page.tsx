@@ -2,14 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getProjects, createProject, updateProjectStatus } from './actions'
-import Link from 'next/link'
 
-const STATUS_COLORS: Record<string, string> = {
-  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  on_hold: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  completed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+type BadgeTone = React.ComponentProps<typeof Badge>['tone']
+
+const STATUS_TONE: Record<string, BadgeTone> = {
+  active: 'emerald',
+  on_hold: 'amber',
+  completed: 'blue',
+  cancelled: 'red',
 }
 
 export default function ProjectsPage() {
@@ -75,8 +81,16 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="mx-auto max-w-5xl space-y-6">
+        <Skeleton className="h-7 w-40" />
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="space-y-2 p-4">
+              <Skeleton className="h-5 w-52" />
+              <Skeleton className="h-3 w-72" />
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
@@ -104,10 +118,10 @@ export default function ProjectsPage() {
       {showConvert && (
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-semibold">Convert Won Deal to Project</h3>
-          <select
+          <Select
             value={selectedDeal}
             onChange={e => setSelectedDeal(e.target.value)}
-            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            className="w-full"
           >
             <option value="">Select a won deal...</option>
             {wonDeals.map(d => (
@@ -115,7 +129,7 @@ export default function ProjectsPage() {
                 {d.title} — {d.companyName} {d.value ? `($${Number(d.value).toLocaleString()})` : ''}
               </option>
             ))}
-          </select>
+          </Select>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleConvert} disabled={!selectedDeal || saving}>
               {saving ? 'Converting...' : 'Convert'}
@@ -130,33 +144,31 @@ export default function ProjectsPage() {
         <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
           <h3 className="text-sm font-semibold">Create New Project</h3>
           <div className="grid grid-cols-2 gap-3">
-            <input
+            <Input
               type="text"
               placeholder="Project name *"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="h-9 rounded-md border bg-background px-3 text-sm col-span-2"
+              className="col-span-2"
             />
-            <input
+            <Input
               type="text"
               placeholder="Type (e.g. Web App, Mobile)"
               value={type}
               onChange={e => setType(e.target.value)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
             />
-            <input
+            <Input
               type="number"
               placeholder="Budget"
               value={budget}
               onChange={e => setBudget(e.target.value)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
             />
-            <input
+            <Input
               type="date"
               placeholder="Deadline"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
-              className="h-9 rounded-md border bg-background px-3 text-sm"
+              className="col-span-2"
             />
           </div>
           <div className="flex gap-2">
@@ -184,13 +196,11 @@ export default function ProjectsPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">{project.name}</h3>
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[project.status] ?? ''}`}>
+                    <Badge tone={STATUS_TONE[project.status]} className="capitalize">
                       {project.status.replace('_', ' ')}
-                    </span>
+                    </Badge>
                     {project.type && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {project.type}
-                      </span>
+                      <Badge tone="neutral">{project.type}</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -211,16 +221,16 @@ export default function ProjectsPage() {
                     )}
                   </div>
                 </div>
-                <select
+                <Select
                   value={project.status}
                   onChange={e => handleStatusChange(project.id, e.target.value)}
-                  className="h-8 rounded-md border bg-background px-2 text-xs"
+                  className="h-8 px-2 text-xs"
                 >
                   <option value="active">Active</option>
                   <option value="on_hold">On Hold</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
-                </select>
+                </Select>
               </div>
             </div>
           ))}

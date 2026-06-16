@@ -13,6 +13,7 @@ import {
   type CustomDataRow,
 } from '../../actions'
 import { ArrowLeft, Save, Trash2 } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 export default function RowDetailPage({
   params,
@@ -21,6 +22,7 @@ export default function RowDetailPage({
 }) {
   const { slug, rowId } = use(params)
   const router = useRouter()
+  const confirm = useConfirm()
 
   const [columns, setColumns] = useState<CustomColumnRow[]>([])
   const [row, setRow] = useState<CustomDataRow | null>(null)
@@ -80,7 +82,12 @@ export default function RowDetailPage({
 
   async function handleDelete() {
     if (!row) return
-    if (!confirm('Archive this row?')) return
+    const ok = await confirm({
+      title: 'Archive this row?',
+      confirmLabel: 'Archive',
+      variant: 'danger',
+    })
+    if (!ok) return
     await archiveRow(row.id)
     router.push(`/tables/${slug}`)
   }

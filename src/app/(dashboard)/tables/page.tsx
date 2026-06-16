@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getTables, createTable, archiveTable, type CustomTableRow } from './actions'
 import { ImportModal } from './import-modal'
 import { Plus, Table2, Trash2, ChevronDown, Upload, FileSpreadsheet } from 'lucide-react'
+import { useConfirm } from '@/components/ui/confirm-dialog'
 
 const COLOR_OPTIONS = [
   { value: 'blue', bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-600 dark:text-blue-400' },
@@ -21,6 +22,7 @@ function getColorClasses(color: string | null) {
 
 export default function TablesHubPage() {
   const router = useRouter()
+  const confirm = useConfirm()
   const [tables, setTables] = useState<CustomTableRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -76,7 +78,13 @@ export default function TablesHubPage() {
 
   async function handleArchive(e: React.MouseEvent, tableId: string) {
     e.stopPropagation()
-    if (!confirm('Archive this table? It can be restored later.')) return
+    const ok = await confirm({
+      title: 'Archive this table?',
+      description: 'It can be restored later.',
+      confirmLabel: 'Archive',
+      variant: 'danger',
+    })
+    if (!ok) return
     await archiveTable(tableId)
     await load()
   }

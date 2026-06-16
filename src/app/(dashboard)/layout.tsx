@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { Sidebar } from '@/components/layout/sidebar'
-import { TopBar } from '@/components/layout/top-bar'
+import { DashboardChrome } from '@/components/layout/dashboard-chrome'
 
 export default async function DashboardLayout({
   children,
@@ -42,20 +41,12 @@ export default async function DashboardLayout({
   const activeOrgId = profile.default_organization_id ?? orgs[0]?.id
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar orgs={orgs} activeOrgId={activeOrgId} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar
-          profile={{ id: profile.id, fullName: profile.full_name, avatarUrl: profile.avatar_url }}
-          orgs={orgs}
-          activeOrgId={activeOrgId}
-        />
-        <main className="flex-1 overflow-y-auto bg-background p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            {children}
-          </div>
-        </main>
-      </div>
-    </div>
+    <DashboardChrome
+      orgs={orgs}
+      activeOrgId={activeOrgId}
+      profile={{ id: profile.id, fullName: profile.full_name, avatarUrl: profile.avatar_url }}
+    >
+      {children}
+    </DashboardChrome>
   )
 }
