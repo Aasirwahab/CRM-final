@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadFlow CRM
 
-## Getting Started
+**A multi-tenant AI sales CRM.** Upload a CSV of leads, and LeadFlow cleans and de-duplicates them, researches and scores each lead with AI, then moves it through a sales pipeline, from first contact to won deal.
 
-First, run the development server:
+🔗 **Live demo:** [crm-final-zeta.vercel.app](https://crm-final-zeta.vercel.app)
+
+---
+
+## What it does
+
+- **CSV import pipeline:** upload large lead exports; rows are cleaned, validated and de-duplicated against existing leads in a background job, so big files never time out
+- **AI research and scoring:** each lead is enriched and scored by an LLM so the best opportunities rise to the top
+- **Sales pipeline:** drag-and-drop stages to move leads from new to won, with meetings and outreach tracked along the way
+- **Multi-tenant by design:** every workspace's data is isolated with Postgres Row Level Security
+- **Dashboards:** pipeline and activity charts at a glance
+
+## Tech stack
+
+| Area | Tools |
+|---|---|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| UI | Tailwind CSS, shadcn/ui, Framer Motion, dnd-kit, TanStack Table, Recharts |
+| Data & auth | Supabase (Postgres, Auth, Storage) with Row Level Security |
+| Background jobs | Trigger.dev |
+| AI | Anthropic SDK |
+| Email | Resend |
+| Rate limiting | Upstash Redis |
+| Observability | Sentry, PostHog |
+| Testing | Vitest |
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # add your Supabase, Anthropic and other keys
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Other scripts: `npm run build`, `npm run test`, `npm run lint`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [`LeadFlow_CRM_Production_Plan_v2.md`](LeadFlow_CRM_Production_Plan_v2.md): architecture, data model, security and roadmap
+- [`LEADFLOW_TABLES_DEV_PLAN.md`](LEADFLOW_TABLES_DEV_PLAN.md): table-level development plan
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built by [Aasir Wahab](https://github.com/Aasirwahab) · [LinkedIn](https://www.linkedin.com/in/aasirwahab/)
